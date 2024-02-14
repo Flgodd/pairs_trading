@@ -33,17 +33,18 @@ std::vector<double> stock2_prices;
 
 
 vector<double> readCSV(const string& filename);
+void read_prices();
 
 
 
 void read_prices() {
- 
+
   string gs_file = "GS.csv";
   string ms_file = "MS.csv";
 
   stock1_prices = readCSV(gs_file);
   stock2_prices = readCSV(ms_file);
- 
+
 }
 
 
@@ -52,7 +53,7 @@ vector<double> readCSV(const string& filename){
   std::ifstream file(filename);
   std::string line;
 
-  std::getline(file, line);  
+  std::getline(file, line);
 
   while (std::getline(file, line)) {
 	std::stringstream ss(line);
@@ -63,18 +64,45 @@ vector<double> readCSV(const string& filename){
   	row.push_back(value);
 	}
 
-	double adjClose = std::stod(row[5]);  
+	double adjClose = std::stod(row[5]);
 	prices.push_back(adjClose);
   }
 
- 
+
   return prices;
 }
+
+constexpr size_t unroll_iter = 4;
+template<size_t N, size_t Step = 0>
+struct UnrollLoop {
+    static void process(const std::array<double, N>& spread, double& final_sum, double& final_sq_sum) {
+        if constexpr (Step < N) {
+            float64x2_t spread_vec = vld1q_f64(&spread[Step]);
+            float64x2_t sum_vec = vdupq_n_f64(0.0);
+            float64x2_t sq_sum_vec = vdupq_n_f64(0.0);
+
+            sum_vec = vaddq_f64(sum_vec, spread_vec);
+            sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
+
+            double sum[2], sq_sum[2];
+            vst1q_f64(sum, sum_vec);
+            vst1q_f64(sq_sum, sq_sum_vec);
+
+            final_sum += sum[0] + sum[1];
+            final_sq_sum += sq_sum[0] + sq_sum[1];
+
+            // Recursively call the next step of the unroll
+            UnrollLoop<N, Step + 2>::process(spread, final_sum, final_sq_sum);
+        }
+    }
+};
 
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
   static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
+  static_assert(N % unroll_iter == 0, "N should be a multiple of the unroll factor for loop unrolling");
+
 
   std::array<double, N> spread;
   size_t spread_index = 0;
@@ -83,7 +111,11 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 	spread[i] = stock1_prices[i] - stock2_prices[i];
   }
 
-  for(size_t i = N; i < stock1_prices.size(); ++i) {
+  double final_sum = 0.0;
+  double final_sq_sum = 0.0;
+
+  UnrollLoop<N>::process(spread, final_sum, final_sq_sum);
+  /*for(size_t i = N; i < stock1_prices.size(); ++i) {
       float64x2_t sum_vec = vdupq_n_f64(0.0);
       float64x2_t sq_sum_vec = vdupq_n_f64(0.0);
 
@@ -91,7 +123,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         float64x2_t spread_vec = vld1q_f64(&spread[j]);
         sum_vec = vaddq_f64(sum_vec, spread_vec);
         sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
-	}
+	}*/
 
 	/*__m256d temp1 = _mm256_hadd_pd(sum_vec, sum_vec);
 	__m256d sum_vec_total = _mm256_add_pd(temp1, _mm256_permute2f128_pd(temp1, temp1, 0x1));
@@ -106,31 +138,32 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     double sq_sum = simd::reduce(sq_sum_vec);*/
 
 
-    double sum[2], sq_sum[2];
+    /*double sum[2], sq_sum[2];
     vst1q_f64(sum, sum_vec);
     vst1q_f64(sq_sum, sq_sum_vec);
     double final_sum = sum[0] + sum[1];
-    double final_sq_sum = sq_sum[0] + sq_sum[1];
+    double final_sq_sum = sq_sum[0] + sq_sum[1];*/
 
     double mean = final_sum / N;
     double stddev = std::sqrt(final_sq_sum / N - mean * mean);
 
-    double current_spread = stock1_prices[i] - stock2_prices[i];
-    double z_score = (current_spread - mean) / stddev;
+    for (size_t i = N; i < stock1_prices.size(); ++i) {
+        double current_spread = stock1_prices[i] - stock2_prices[i];
+        double z_score = (current_spread - mean) / stddev;
 
-    spread[spread_index] = current_spread;
+        spread[spread_index] = current_spread;
 
-	if(z_score > 1.0) {
-  	// Long and Short
-	} else if(z_score < -1.0) {
-  	// Short and Long
-	} else if (std::abs(z_score) < 0.8) {
-  	// Close positions
-	} else {
-  	// No signal
-	}
+        if(z_score > 1.0) {
+        // Long and Short
+        } else if(z_score < -1.0) {
+        // Short and Long
+        } else if (std::abs(z_score) < 0.8) {
+        // Close positions
+        } else {
+        // No signal
+        }
 
-	spread_index = (spread_index + 1) % N;
+        spread_index = (spread_index + 1) % N;
   }
 
 }
