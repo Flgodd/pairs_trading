@@ -82,9 +82,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     for(size_t i = 0; i < N; ++i) {
         spread[i] = stock1_prices[i] - stock2_prices[i];
     }
-    //cout<<spread[0]<<endl;
 
-    vector<int> check(4, 0);
     for(size_t i = N; i < stock1_prices.size(); ++i) {
         float64x2_t sum_vec = vdupq_n_f64(0.0);
         float64x2_t sq_sum_vec = vdupq_n_f64(0.0);
@@ -95,47 +93,46 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
             sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
         }
 
+        /*__m256d temp1 = _mm256_hadd_pd(sum_vec, sum_vec);
+        __m256d sum_vec_total = _mm256_add_pd(temp1, _mm256_permute2f128_pd(temp1, temp1, 0x1));
+
+        __m256d temp2 = _mm256_hadd_pd(sq_sum_vec, sq_sum_vec);
+        __m256d sq_sum_vec_total = _mm256_add_pd(temp2, _mm256_permute2f128_pd(temp2, temp2, 0x1));
+
+        double sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sum_vec_total));
+        double sq_sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sq_sum_vec_total));*/
+
+        /*double sum = simd::reduce(sum_vec);
+        double sq_sum = simd::reduce(sq_sum_vec);*/
+
 
         double sum[2], sq_sum[2];
         vst1q_f64(sum, sum_vec);
-
         vst1q_f64(sq_sum, sq_sum_vec);
         double final_sum = sum[0] + sum[1];
         double final_sq_sum = sq_sum[0] + sq_sum[1];
 
-
-        //cout<<final_sum<<endl;
         double mean = final_sum / N;
         double stddev = std::sqrt(final_sq_sum / N - mean * mean);
 
         double current_spread = stock1_prices[i] - stock2_prices[i];
         double z_score = (current_spread - mean) / stddev;
 
-        //if(i==17) cout<<spread[0]<<"sum"<<final_sum<<endl;
-
-        //if(i==9)cout<<"c"<<current_spread<<endl;
-
         spread[spread_index] = current_spread;
 
         if(z_score > 1.0) {
             // Long and Short
-            check[0]++;
         } else if(z_score < -1.0) {
             // Short and Long
-            check[1]++;
         } else if (std::abs(z_score) < 0.8) {
             // Close positions
-            check[2]++;
         } else {
             // No signal
-            check[3]++;
         }
 
-        //if(i==8)cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<":"<<sum[0]<<endl;
-
         spread_index = (spread_index + 1) % N;
+        //copm
     }
-    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
@@ -153,6 +150,3 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
 BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 8);
 
 BENCHMARK_MAIN();
-
-
-

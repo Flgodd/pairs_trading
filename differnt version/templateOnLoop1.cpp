@@ -71,6 +71,22 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
+template<size_t N, size_t UnrollFactor>
+struct LoopUnroll {
+    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex) {
+        spread[startIndex] = stock1_prices[startIndex] - stock2_prices[startIndex];
+        spread[startIndex + 1] = stock1_prices[startIndex + 1] - stock2_prices[startIndex + 1];
+        LoopUnroll<N, UnrollFactor - 2>::computeSpread(spread, stock1_prices, stock2_prices, startIndex + 2);
+    }
+};
+
+template<size_t N>
+struct LoopUnroll<N, 0> {
+    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex) {
+        // Base case, do nothing
+    }
+};
+
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
@@ -79,10 +95,11 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     std::array<double, N> spread;
     size_t spread_index = 0;
 
-    for(size_t i = 0; i < N; ++i) {
+    /*for(size_t i = 0; i < N; ++i) {
         spread[i] = stock1_prices[i] - stock2_prices[i];
-    }
-    //cout<<spread[0]<<endl;
+    }*/
+    LoopUnroll<N, N>::computeSpread(spread, stock1_prices, stock2_prices, 0);
+
 
     vector<int> check(4, 0);
     for(size_t i = N; i < stock1_prices.size(); ++i) {
@@ -95,25 +112,17 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
             sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
         }
 
-
         double sum[2], sq_sum[2];
         vst1q_f64(sum, sum_vec);
-
         vst1q_f64(sq_sum, sq_sum_vec);
         double final_sum = sum[0] + sum[1];
         double final_sq_sum = sq_sum[0] + sq_sum[1];
 
-
-        //cout<<final_sum<<endl;
         double mean = final_sum / N;
         double stddev = std::sqrt(final_sq_sum / N - mean * mean);
 
         double current_spread = stock1_prices[i] - stock2_prices[i];
         double z_score = (current_spread - mean) / stddev;
-
-        //if(i==17) cout<<spread[0]<<"sum"<<final_sum<<endl;
-
-        //if(i==9)cout<<"c"<<current_spread<<endl;
 
         spread[spread_index] = current_spread;
 
@@ -130,8 +139,6 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
             // No signal
             check[3]++;
         }
-
-        //if(i==8)cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<":"<<sum[0]<<endl;
 
         spread_index = (spread_index + 1) % N;
     }
@@ -153,6 +160,3 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
 BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 8);
 
 BENCHMARK_MAIN();
-
-
-

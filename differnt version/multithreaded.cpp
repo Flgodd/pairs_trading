@@ -22,6 +22,9 @@
 //#include <experimental/numeric>
 #include <arm_neon.h>
 #include <array>
+#include <thread>
+#include <vector>
+#include <mutex>
 
 
 using namespace std;
@@ -71,71 +74,70 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
+//std::mutex spread_mutex; // Global mutex to protect access to shared resources
 
 template<size_t N>
-void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
-    static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
-
-    std::array<double, N> spread;
-    size_t spread_index = 0;
-
-    for(size_t i = 0; i < N; ++i) {
-        spread[i] = stock1_prices[i] - stock2_prices[i];
-    }
-    //cout<<spread[0]<<endl;
-
-    vector<int> check(4, 0);
-    for(size_t i = N; i < stock1_prices.size(); ++i) {
+void process_chunk(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t start, size_t end, std::array<double, N>& spread, std::mutex& spread_mutex) {
+    for(size_t i = start; i < end; ++i) {
+        if (i < N) continue; // Skip the initial filling of the spread array
         float64x2_t sum_vec = vdupq_n_f64(0.0);
         float64x2_t sq_sum_vec = vdupq_n_f64(0.0);
 
         for(size_t j = 0; j < N; j += 2) {
-            float64x2_t spread_vec = vld1q_f64(&spread[j]);
+            float64x2_t spread_vec;
+            // Protect reading from spread with mutex
+            {
+                std::lock_guard<std::mutex> guard(spread_mutex);
+                spread_vec = vld1q_f64(&spread[j]);
+            }
             sum_vec = vaddq_f64(sum_vec, spread_vec);
             sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
         }
 
-
         double sum[2], sq_sum[2];
         vst1q_f64(sum, sum_vec);
-
         vst1q_f64(sq_sum, sq_sum_vec);
         double final_sum = sum[0] + sum[1];
         double final_sq_sum = sq_sum[0] + sq_sum[1];
 
-
-        //cout<<final_sum<<endl;
         double mean = final_sum / N;
         double stddev = std::sqrt(final_sq_sum / N - mean * mean);
 
         double current_spread = stock1_prices[i] - stock2_prices[i];
         double z_score = (current_spread - mean) / stddev;
 
-        //if(i==17) cout<<spread[0]<<"sum"<<final_sum<<endl;
+        // Protect writing to spread with mutex
+        std::lock_guard<std::mutex> guard(spread_mutex);
+        spread[i % N] = current_spread;
+        // Logic to handle z_score (e.g., long/short positions) goes here
 
-        //if(i==9)cout<<"c"<<current_spread<<endl;
-
-        spread[spread_index] = current_spread;
-
-        if(z_score > 1.0) {
-            // Long and Short
-            check[0]++;
-        } else if(z_score < -1.0) {
-            // Short and Long
-            check[1]++;
-        } else if (std::abs(z_score) < 0.8) {
-            // Close positions
-            check[2]++;
-        } else {
-            // No signal
-            check[3]++;
-        }
-
-        //if(i==8)cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<":"<<sum[0]<<endl;
-
-        spread_index = (spread_index + 1) % N;
     }
-    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+}
+
+
+template<size_t N>
+void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
+    static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
+
+    std::array<double, N> spread;
+    std::mutex spread_mutex;
+    size_t spread_index = 0;
+    const size_t num_threads = std::thread::hardware_concurrency();
+    std::vector<std::thread> threads;
+
+    // Initialize spread array as before
+
+    size_t chunk_size = stock1_prices.size() / num_threads;
+    for(size_t i = 0; i < num_threads; ++i) {
+        size_t start = i * chunk_size;
+        size_t end = (i + 1) * chunk_size;
+        if (i == num_threads - 1) end = stock1_prices.size(); // Make sure the last chunk includes the end
+        threads.emplace_back(process_chunk<N>, std::ref(stock1_prices), std::ref(stock2_prices), start, end, std::ref(spread), std::ref(spread_mutex));
+    }
+
+    for(auto& thread : threads) {
+        thread.join();
+    }
 
 }
 
@@ -153,6 +155,3 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
 BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 8);
 
 BENCHMARK_MAIN();
-
-
-
