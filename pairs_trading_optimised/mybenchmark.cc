@@ -139,7 +139,7 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
 }
 
 BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 8);
-
+//
 BENCHMARK_MAIN();
 
 
