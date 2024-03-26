@@ -16,7 +16,7 @@
 #include <cmath>
 #include <iostream>
 #include <array>
-#include <experimental/simd>
+//#include <experimental/simd>
 //#include <experimental/execution_policy>
 #include <chrono>
 //#include <experimental/numeric>
