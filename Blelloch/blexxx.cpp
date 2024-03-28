@@ -25,7 +25,7 @@
 #include <thread>
 
 
-#define NUM_THREADS 8
+#define NUM_THREADS 4
 
 
 using namespace std;
@@ -75,9 +75,9 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
-void parallelUpSweep(vector<double>& x) {
+void parallelUpSweep(vector<int>& x) {
     int n = x.size();
-    int numThreads = NUM_THREADS;
+    int numThreads = 4;
     int maxDepth = std::log2(n);
     std::vector<std::thread> threads;
 
@@ -89,13 +89,15 @@ void parallelUpSweep(vector<double>& x) {
             int start = i * n / numThreads;
             int end = std::min(n, (i + 1) * n / numThreads);
 
+            // Adjust start and end to align with powerOfTwoDPlus1 boundaries
             start = (start / powerOfTwoDPlus1) * powerOfTwoDPlus1;
             end = ((end + powerOfTwoDPlus1 - 1) / powerOfTwoDPlus1) * powerOfTwoDPlus1;
 
             threads.emplace_back([=, &x]() {
                 for (int k = start; k < end; k += powerOfTwoDPlus1) {
-                    double idx1 = k + std::pow(2, d) - 1;
-                    double idx2 = k + powerOfTwoDPlus1 - 1;
+                    int idx1 = k + std::pow(2, d) - 1;
+                    int idx2 = k + powerOfTwoDPlus1 - 1;
+                    //if(d==1&&start==0)cout<<idx1<<":"<<idx2<<":"<<x[idx1]+x[idx2]<<endl;
                     if (idx2 < n) {
                         x[idx2] = x[idx1] + x[idx2];
                     }
@@ -107,10 +109,13 @@ void parallelUpSweep(vector<double>& x) {
             thread.join();
         }
         numThreads /= 2;
+        //if(d==0)cout<<x[0]<<":"<<x[1]<<":"<<x[2]<<":"<<x[3]<<":"<<x[4]<<":"<<x[5]<<":"<<x[6]<<":"<<x[7]<<endl;
+
+        //cout<<d<<"arr"<<x[0]<<":"<<x[1]<<":"<<x[2]<<":"<<x[3]<<":"<<x[4]<<":"<<x[5]<<":"<<x[6]<<":"<<x[7]<<endl;
     }
 }
 
-void parallelDownSweep(vector<double>& x) {
+void parallelDownSweep(vector<int>& x) {
     int n = x.size();
     x[n - 1] = 0; // Initialize the last element to 0
     int numThreads = 1;
@@ -131,10 +136,10 @@ void parallelDownSweep(vector<double>& x) {
 
             threads.emplace_back([=, &x]() {
                 for (int k = start; k < end; k += powerOfTwoDPlus1) {
-                    double idx1 = k + std::pow(2, d) - 1;
-                    double idx2 = k + powerOfTwoDPlus1 - 1;
+                    int idx1 = k + std::pow(2, d) - 1;
+                    int idx2 = k + powerOfTwoDPlus1 - 1;
                     if (idx2 < n) {
-                        double tmp = x[idx1];
+                        int tmp = x[idx1];
                         x[idx1] = x[idx2];
                         x[idx2] += tmp;
                     }
@@ -146,45 +151,35 @@ void parallelDownSweep(vector<double>& x) {
             thread.join();
         }
         numThreads *= 2;
+        cout<<d<<"arr"<<x[0]<<":"<<x[1]<<":"<<x[2]<<":"<<x[3]<<":"<<x[4]<<":"<<x[5]<<":"<<x[6]<<":"<<x[7]<<endl;
+
     }
 }
 
-void recurive_blelloch(vector<double>& x, int depth){
-    //if(depth == 0)return;
-    int rem = (x.size()%(NUM_THREADS*2));
+void recurive_blelloch(vector<int>& x, int depth){
+    if(depth == 0)return;
+    int rem = x.size()%(NUM_THREADS*2);
     int div = x.size()/(NUM_THREADS*2);
     if(rem != 0){
-        rem = (NUM_THREADS*2) - rem;
         for(int i = 0; i<rem; i++){
             x.push_back(0);
         }
         div++;
     }
-
     int n = NUM_THREADS*2;
-    //change to one d vector
-    vector<vector<double>> toHoldValues(div);
-    vector<double> newX(div);
+    vector<vector<int>> toHoldValues;
+    vector<int> newX;
     for(int i = 0; i<div; i++){
-        std::vector<double> temp(x.begin() + (n*i), x.begin() + (n*i + n));
-
+        std::vector<int> temp(x.begin() + (n*i), x.begin() + (n*i + 8));
         parallelUpSweep(temp);
 
         parallelDownSweep(temp);
-        toHoldValues[i] = (temp);
-        newX[i]=(temp.back() + x[n*i + n-1]);
-
+        toHoldValues.push_back(temp);
+        newX.push_back(temp.back() + x[n*i + 7]);
     }
-    double bigg = newX.back();
-
-    if(depth-1==0){
-        x = toHoldValues[0];
-        return;
-    }
+    int bigg = newX.back();
     recurive_blelloch(newX, depth-1);
-
     x.clear();
-    //parallelise and using simd
     newX.push_back(newX.back() + bigg);
     for(int i = 0; i<toHoldValues.size(); i++){
         for(int j = 0; j<toHoldValues[i].size(); j++){
@@ -200,37 +195,27 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    vector<double> spread_sum(1256);
-    vector<double> spread_sq_sum(1256);
+    std::array<double, 1256> spread_sum;
+    std::array<double, 1256> spread_sq_sum;
     vector<int> check(4, 0);
+    std::vector<int> x = {1, 2, 3, 4, 5, 6, 7, 8};
+    //int n = stock1_prices.size();
 
-
+    int num_threads = 4;//std::thread::hardware_concurrency(); // Use available hardware threads
+    //cout<<num_threads<<endl;
     for(int i = 0; i<stock1_prices.size(); i++){
         const double current_spread = stock1_prices[i] - stock2_prices[i];
         spread_sum[i] = current_spread;
         spread_sq_sum[i] = current_spread*current_spread;
     }
+    int depth = std::log(1000)/log(8);
+    //cout<<depth<<endl;
+    recurive_blelloch(x, depth);
+    cout<<x[0]<<x[1]<<x[2]<<x[3]<<x[4]<<x[5]<<x[6]<<x[7]<<endl;
+    //parallelUpSweep(x);
 
-    int last_spread_sum = spread_sum.back();
-    int last_spread_sq_sum = spread_sq_sum.back();
+    //parallelDownSweep(x);
 
-    int depth = std::log(spread_sum.size())/log(NUM_THREADS*2);
-    float  check_depth = std::log(spread_sum.size())/log(NUM_THREADS*2);
-    int rem = (spread_sum.size()%(NUM_THREADS*2));
-
-    if(rem != 0 || check_depth > depth)depth++;
-
-
-    recurive_blelloch(spread_sum, depth);
-    recurive_blelloch(spread_sq_sum, depth);
-
-    spread_sum.erase(spread_sum.begin());
-    spread_sq_sum.erase(spread_sq_sum.begin());
-
-    if(rem == 0){
-        spread_sum.push_back(last_spread_sum);
-        spread_sq_sum.push_back(last_spread_sq_sum);
-    }
 
     const double mean = (spread_sum[N-1])/ N;
     const double stddev = std::sqrt((spread_sq_sum[N-1])/ N - mean * mean);
@@ -268,7 +253,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         }
 
     }
-    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 

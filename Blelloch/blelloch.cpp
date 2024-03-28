@@ -175,43 +175,12 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         spread_sq_sum[i] = current_spread*current_spread;
     }
 
-    // Divide work among threads
-    /*int chunk_size = n / num_threads;
-    std::vector<std::thread> threads;
 
-
-    for (int i = 0; i < num_threads; i++) {
-        int start = i * chunk_size;
-        int end = std::min(start + chunk_size, n);
-        threads.push_back(thread(upsweep, std::ref(spread_sum), start, end));
-    }
-
-    // Wait for threads to finish
-    for (auto& th : threads) {
-        th.join();
-    }*/
     parallelUpSweep(x);
     //cout<<spread_sum[313]<<":"<<stock1_prices[313]-stock2_prices[313]<<endl;
     //cout<<x[0]<<":"<<x[1]<<":"<<x[2]<<":"<<x[3]<<":"<<x[4]<<":"<<x[5]<<":"<<x[6]<<":"<<x[7]<<endl;
     parallelDownSweep(x);
-    //cout<<spread_sum[313]<<":"<<endl;
 
-
-    // DownSweep phase
-    /*spread_sum[n - 1] = 0;
-    threads.clear();
-    int initial = 0;
-    for (int i = 0; i < num_threads; i++) {
-        int start = i * chunk_size;
-        int end = std::min(start + chunk_size, n);
-        threads.push_back(std::thread(downsweep, std::ref(spread_sum), start, end, initial));
-        initial += spread_sum[end - 1];
-    }
-    for (auto& th : threads) {
-        th.join();
-    }
-*/
-    //cout<<spread_sum[313]<<":"<<endl;
 
 
     const double mean = (spread_sum[N-1])/ N;
