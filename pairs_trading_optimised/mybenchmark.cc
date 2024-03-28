@@ -16,18 +16,18 @@
 #include <cmath>
 #include <iostream>
 #include <array>
-#include <simd>
+#include <experimental/simd>
 //#include <experimental/execution_policy>
 #include <chrono>
 //#include <experimental/numeric>
 #include <arm_neon.h>
 #include <array>
-
+#include <experimental/simd>
 
 
 using namespace std;
 
-namespace simd = std::simd;
+namespace simd = std::experimental;
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -86,12 +86,12 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     std::vector<int> check(4, 0);
     for(size_t i = N; i < stock1_prices.size(); ++i) {
-        namespace simd = std::simd;
-        using Vd = std::simd<double>; // Use the default SIMD ABI for doubles
+        using namespace std::experimental;
+        using Vd = simd<double>; // Use the default SIMD ABI for doubles
         Vd sum_vec(0.0), sq_sum_vec(0.0);
 
         for(size_t j = 0; j < N; j += Vd::size()) {
-            Vd spread_vec(&spread[j], std::simd_abi::native{}); // Load spread values into a SIMD vector
+            Vd spread_vec(&spread[j], simd_abi::native{}); // Load spread values into a SIMD vector
             sum_vec += spread_vec;
             sq_sum_vec += spread_vec * spread_vec;
         }
