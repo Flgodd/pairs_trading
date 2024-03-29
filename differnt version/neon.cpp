@@ -93,18 +93,6 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
             sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
         }
 
-        /*__m256d temp1 = _mm256_hadd_pd(sum_vec, sum_vec);
-        __m256d sum_vec_total = _mm256_add_pd(temp1, _mm256_permute2f128_pd(temp1, temp1, 0x1));
-
-        __m256d temp2 = _mm256_hadd_pd(sq_sum_vec, sq_sum_vec);
-        __m256d sq_sum_vec_total = _mm256_add_pd(temp2, _mm256_permute2f128_pd(temp2, temp2, 0x1));
-
-        double sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sum_vec_total));
-        double sq_sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sq_sum_vec_total));*/
-
-        /*double sum = simd::reduce(sum_vec);
-        double sq_sum = simd::reduce(sq_sum_vec);*/
-
 
         double sum[2], sq_sum[2];
         vst1q_f64(sum, sum_vec);

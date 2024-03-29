@@ -23,6 +23,63 @@
 #include <arm_neon.h>
 #include <array>
 #include <experimental/simd>
+#include <stdlib.h>
+#include <stdio.h>
+
+#include <time.h>
+
+#include "scan.cuh"
+#include "utils.h"
+
+void test(int N) {
+    bool canBeBlockscanned = N <= 1024;
+
+    time_t t;
+    srand((unsigned)time(&t));
+    int *in = new int[N];
+    for (int i = 0; i < N; i++) {
+        in[i] = rand() % 10;
+    }
+
+    printf("%i Elements \n", N);
+
+    // sequential scan on CPU
+    int *outHost = new int[N]();
+    long time_host = sequential_scan(outHost, in, N);
+    printResult("host    ", outHost[N - 1], time_host);
+
+    // full scan
+    int *outGPU = new int[N]();
+    float time_gpu = scan(outGPU, in, N, false);
+    printResult("gpu     ", outGPU[N - 1], time_gpu);
+
+    // full scan with BCAO
+    int *outGPU_bcao = new int[N]();
+    float time_gpu_bcao = scan(outGPU_bcao, in, N, true);
+    printResult("gpu bcao", outGPU_bcao[N - 1], time_gpu_bcao);
+
+    if (canBeBlockscanned) {
+        // basic level 1 block scan
+        int *out_1block = new int[N]();
+        float time_1block = blockscan(out_1block, in, N, false);
+        printResult("level 1 ", out_1block[N - 1], time_1block);
+
+        // level 1 block scan with BCAO
+        int *out_1block_bcao = new int[N]();
+        float time_1block_bcao = blockscan(out_1block_bcao, in, N, true);
+        printResult("l1 bcao ", out_1block_bcao[N - 1], time_1block_bcao);
+
+        delete[] out_1block;
+        delete[] out_1block_bcao;
+    }
+
+    printf("\n");
+
+    delete[] in;
+    delete[] outHost;
+    delete[] outGPU;
+    delete[] outGPU_bcao;
+}
 
 
 using namespace std;
@@ -79,6 +136,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     std::array<double, N> spread;
     size_t spread_index = 0;
+
+    test(100);
 
     for(size_t i = 0; i < N; ++i) {
         spread[i] = stock1_prices[i] - stock2_prices[i];
@@ -144,8 +203,4 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
 BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 8);
 
 BENCHMARK_MAIN();
-
-
-
-
 
