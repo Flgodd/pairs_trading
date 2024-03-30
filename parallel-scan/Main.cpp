@@ -66,7 +66,7 @@ void test(double in[]) {
 		// full scan with BCAO
 		double *outGPU_bcao = new double[NN]();
 		float time_gpu_bcao = scan(outGPU_bcao, in, NN, true);
-		printResult("gpu bcao", outGPU_bcao[NN - 1], time_gpu_bcao);
+		printResult("gpu bcao", in[NN - 1], time_gpu_bcao);
 
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -92,10 +92,10 @@ void test(double in[]) {
 
 	printf("\n");
 
-    for (int i = 0; i < 1256; i++) {
+    /*for (int i = 0; i < 1256; i++) {
         //if(outHost[i] != outGPU[i])cout<<"outHost:"<<outHost[i]<<" outGPU:"<<outGPU[i]<<endl;
         in[i] = outGPU_bcao[i];
-    }
+    }*/
 	//delete[] outHost;
 	//delete[] outGPU;
 	delete[] outGPU_bcao;

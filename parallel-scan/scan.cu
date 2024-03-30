@@ -100,7 +100,7 @@ float scan(double *output, double *input, int length, bool bcao) {
 	float elapsedTime = 0;
 	cudaEventElapsedTime(&elapsedTime, start, stop);*/
 
-	cudaMemcpy(output, d_out, arraySize, cudaMemcpyDeviceToHost);
+	cudaMemcpy(input, d_out, arraySize, cudaMemcpyDeviceToHost);
 
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
