@@ -59,15 +59,21 @@ void test(double in[]) {
 		double *outGPU = new double[NN]();
 		float time_gpu = scan(outGPU, in, NN, false);
 		printResult("gpu     ", outGPU[NN - 1], time_gpu);*/
-        long f_start_time = get_nanos();
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start);
 		// full scan with BCAO
 		double *outGPU_bcao = new double[NN]();
 		float time_gpu_bcao = scan(outGPU_bcao, in, NN, true);
 		printResult("gpu bcao", outGPU_bcao[NN - 1], time_gpu_bcao);
 
-    long f_end_time = get_nanos();
-    cout<<"in test: "<<f_end_time - f_start_time<<endl;
-
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    float elapsedTime = 0;
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
 		/*if (canBeBlockscanned) {
 			// basic level 1 block scan
 			int *out_1block = new int[N]();
