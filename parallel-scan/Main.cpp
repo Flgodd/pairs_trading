@@ -30,10 +30,10 @@
 #include "utils.h"
 
 using namespace std;
-
+//const int N = 8;
 void test(double in[]) {
-    int N  = 1256;
-	bool canBeBlockscanned = N <= 1024;
+    int NN  = 1256;
+	bool canBeBlockscanned = NN <= 1024;
 
 	time_t t;
 	srand((unsigned)time(&t));
@@ -42,22 +42,22 @@ void test(double in[]) {
 		in[i] = i+1;//rand() % 10;
 	}*/
 
-	printf("%i Elements \n", N);
+	printf("%i Elements \n", NN);
 
 		// sequential scan on CPU
-		double *outHost = new double[N]();
-		long time_host = sequential_scan(outHost, in, N);
-		printResult("host    ", outHost[N - 1], time_host);
+		double *outHost = new double[NN]();
+		long time_host = sequential_scan(outHost, in, NN);
+		printResult("host    ", outHost[NN - 1], time_host);
 
 		// full scan
-		double *outGPU = new double[N]();
-		float time_gpu = scan(outGPU, in, N, false);
-		printResult("gpu     ", outGPU[N - 1], time_gpu);
+		double *outGPU = new double[NN]();
+		float time_gpu = scan(outGPU, in, NN, false);
+		printResult("gpu     ", outGPU[NN - 1], time_gpu);
 	
 		// full scan with BCAO
-		double *outGPU_bcao = new double[N]();
-		float time_gpu_bcao = scan(outGPU_bcao, in, N, true);
-		printResult("gpu bcao", outGPU_bcao[N - 1], time_gpu_bcao);
+		double *outGPU_bcao = new double[NN]();
+		float time_gpu_bcao = scan(outGPU_bcao, in, NN, true);
+		printResult("gpu bcao", outGPU_bcao[NN - 1], time_gpu_bcao);
 
 		/*if (canBeBlockscanned) {
 			// basic level 1 block scan
@@ -77,7 +77,7 @@ void test(double in[]) {
 	printf("\n");
 
 	//delete[] in;
-    in = outGPU;
+    in = *outGPU;
 	delete[] outHost;
 	delete[] outGPU;
 	delete[] outGPU_bcao;
@@ -192,7 +192,6 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
 int main()
 {
-    int N = 8;
     read_prices();
     pairs_trading_strategy_optimized<N>(stock1_prices, stock2_prices);
     //test(1000);
