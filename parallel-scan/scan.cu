@@ -24,7 +24,7 @@ long sequential_scan(double* output, double* input, int length) {
 	return end_time - start_time;
 }
 
-float blockscan(int *output, int *input, int length, bool bcao){
+/*float blockscan(int *output, int *input, int length, bool bcao){
 	int *d_out, *d_in;
 	const int arraySize = length * sizeof(int);
 
@@ -61,7 +61,7 @@ float blockscan(int *output, int *input, int length, bool bcao){
 	cudaEventDestroy(stop);
 
 	return elapsedTime;
-}
+}*/
 
 float scan(double *output, double *input, int length, bool bcao) {
 	double *d_out, *d_in;
