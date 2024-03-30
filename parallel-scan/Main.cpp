@@ -39,7 +39,7 @@
 using namespace std;
 const int N = 8;
 void test(double in[]) {
-    int NN  = 1256;
+    int NN  = 9866;
 	bool canBeBlockscanned = NN <= 1024;
 
 	time_t t;
@@ -151,11 +151,11 @@ vector<double> readCSV(const string& filename){
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
-
-    vector<double> spread_sum(1256);
-    vector<double> spread_sq_sum(1256);
-    double spread_sum_f[1256];
-    double spread_sq_sum_f[1256];
+    //1256 : 9866
+    vector<double> spread_sum(9866);
+    vector<double> spread_sq_sum(9866);
+    double spread_sum_f[9866];
+    double spread_sq_sum_f[9866];
     vector<int> check(4, 0);
 
 
@@ -164,7 +164,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         spread_sum_f[i] = current_spread;
         spread_sq_sum_f[i] = current_spread * current_spread;
     }
-    double last_element = spread_sum_f[1255];
+    double last_element = spread_sum_f[9865];
 
     long f_start_time = get_nanos();
     test(spread_sum_f);
@@ -173,12 +173,12 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     test(spread_sq_sum_f);
 
 
-    for (int i = 1; i < 1256; i++) {
+    for (int i = 1; i < 9866; i++) {
         spread_sum[i - 1] = spread_sum_f[i];
         spread_sq_sum[i - 1] = spread_sq_sum_f[i];
     }
-    spread_sum.back() = last_element + spread_sum[1254];
-    spread_sq_sum.back() = (last_element * last_element) + spread_sq_sum[1254];
+    spread_sum.back() = last_element + spread_sum[9864];
+    spread_sq_sum.back() = (last_element * last_element) + spread_sq_sum[9864];
     long start_time = get_nanos();
     calc_z(stock1_prices,stock2_prices,spread_sum, spread_sq_sum,  check);
     long end_time = get_nanos();
@@ -207,7 +207,7 @@ int main()
     read_prices();
     cout<<stock1_prices.size()<<":"<<stock2_prices.size()<<endl;
     long start_time = get_nanos();
-    //pairs_trading_strategy_optimized<N>(stock1_prices, stock2_prices);
+    pairs_trading_strategy_optimized<N>(stock1_prices, stock2_prices);
     long end_time = get_nanos();
     cout<<end_time - start_time<<endl;
 	return 0;
