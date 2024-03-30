@@ -48,7 +48,6 @@ void test(double in[]) {
 		double *outHost = new double[NN]();
 		long time_host = sequential_scan(outHost, in, NN);
 		printResult("host    ", outHost[NN - 1], time_host);
-
 		// full scan
 		double *outGPU = new double[NN]();
 		float time_gpu = scan(outGPU, in, NN, false);
@@ -132,22 +131,30 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-   // vector<double> spread_sum(1256);
-    //vector<double> spread_sq_sum(1256);
-    double spread_sum[1256];
-    double spread_sq_sum[1256];
+    vector<double> spread_sum(1256);
+    vector<double> spread_sq_sum(1256);
+    double spread_sum_f[1256];
+    double spread_sq_sum_f[1256];
     vector<int> check(4, 0);
 
 
 
     for(int i = 0; i<stock1_prices.size(); i++){
         const double current_spread = stock1_prices[i] - stock2_prices[i];
-        spread_sum[i] = current_spread;
-        spread_sq_sum[i] = current_spread*current_spread;
+        spread_sum_f[i] = current_spread;
+        spread_sq_sum_f[i] = current_spread*current_spread;
     }
+    double last_element = spread_sum_f[1255];
 
-    test(spread_sum);
-    test(spread_sq_sum);
+    test(spread_sum_f);
+    test(spread_sq_sum_f);
+
+    for(int i = 1; i<1256; i++){
+        spread_sum[i-1] = spread_sum_f[i];
+        spread_sq_um[i-1] = spread_sq_sum_f[i];
+    }
+    spread_sum.back() = last_element;
+    spread_sq_sum.back() = last_element* last_element;
 
 
 
