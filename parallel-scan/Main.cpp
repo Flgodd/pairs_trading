@@ -165,9 +165,10 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     }
     spread_sum.back() = last_element + spread_sum[1254];
     spread_sq_sum.back() = (last_element * last_element) + spread_sq_sum[1254];
-
+    long start_time = get_nanos();
     calc_z(stock1_prices,stock2_prices,spread_sum, spread_sq_sum,  check);
-
+    long end_time = get_nanos();
+    cout<<"calc_z: "<<end_time - start_time<<endl;
     const double mean = (spread_sum[N-1])/ N;
     const double stddev = std::sqrt((spread_sq_sum[N-1])/ N - mean * mean);
     const double current_spread = stock1_prices[N] - stock2_prices[N];
