@@ -124,7 +124,7 @@ __global__ void prescan_arbitrary_unoptimized(double *output, double *input, int
 }
 
 
-__global__ void prescan_large(double *output, double *input, int n, int *sums) {
+__global__ void prescan_large(double *output, double *input, int n, double *sums) {
 	extern __shared__ double temp[];
 
 	int blockID = blockIdx.x;
@@ -183,7 +183,7 @@ __global__ void prescan_large(double *output, double *input, int n, int *sums) {
 	output[blockOffset + bi] = temp[bi + bankOffsetB];
 }
 
-__global__ void prescan_large_unoptimized(double *output, double *input, int n, int *sums) {
+__global__ void prescan_large_unoptimized(double *output, double *input, int n, double *sums) {
 	int blockID = blockIdx.x;
 	int threadID = threadIdx.x;
 	int blockOffset = blockID * n;
