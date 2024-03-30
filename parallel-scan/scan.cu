@@ -217,7 +217,7 @@ void calc_z(const std::vector<double>& stock1_prices, const std::vector<double>&
     cudaMemcpy(d_spread_sum, spread_sum.data(), spread_sum.size() * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(d_spread_sq_sum, spread_sq_sum.data(), spread_sq_sum.size() * sizeof(double), cudaMemcpyHostToDevice);
 
-    int threadsPerBlock = 256;
+    int threadsPerBlock = 512;
     int numBlocks = (stock1_prices.size() + threadsPerBlock - 1) / threadsPerBlock;
     printf("%d\n", numBlocks);
 
