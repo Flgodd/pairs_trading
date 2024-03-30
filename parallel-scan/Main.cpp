@@ -169,7 +169,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
 
 
-    /*const double mean = (spread_sum[N-1])/ N;
+    const double mean = (spread_sum[N-1])/ N;
     const double stddev = std::sqrt((spread_sq_sum[N-1])/ N - mean * mean);
     const double current_spread = stock1_prices[N] - stock2_prices[N];
     const double z_score = (current_spread - mean) / stddev;
@@ -183,7 +183,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         check[2]++;  // Close positions
     } else {
         check[3]++;  // No signal
-    }*/
+    }
+    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
     calc_z(stock1_prices,stock2_prices,spread_sum, spread_sq_sum,  check);
     /*for (size_t i = N+1; i < stock1_prices.size(); ++i) {
