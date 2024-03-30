@@ -228,7 +228,7 @@ void calc_z(const std::vector<double>& stock1_prices, const std::vector<double>&
 
 // Print results
     //std::cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<std::endl;
-
+    printf("d_check[0]:%d || d_check[1]:%d || d_check[2]:%d || d_check[3]:%d \n", d_check[0], d_check[1]), d_check[2]), d_check[3]));
     cudaFree(d_stock1_prices);
     cudaFree(d_stock2_prices);
     cudaFree(d_spread_sum);
