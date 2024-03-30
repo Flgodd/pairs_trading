@@ -16,18 +16,17 @@
 #include <cmath>
 #include <iostream>
 #include <array>
-//#include <experimental/simd>
+#include <experimental/simd>
 //#include <experimental/execution_policy>
 #include <chrono>
 //#include <experimental/numeric>
-//#include <arm_neon.h>
+#include <arm_neon.h>
 #include <array>
-
 
 
 using namespace std;
 
-//namespace simd = std::experimental;
+namespace simd = std::experimental;
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -75,7 +74,7 @@ vector<double> readCSV(const string& filename){
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
-    static_assert(N % 2 == 0, "N should be a multiple of 2 for SIMD operations");
+    static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
     std::array<double, N> spread;
     size_t spread_index = 0;
@@ -84,19 +83,22 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         spread[i] = stock1_prices[i] - stock2_prices[i];
     }
 
-    std::vector<int> check(4, 0);
-    using namespace std::experimental;
-    using float64_v = native_simd<double>;
+    for(size_t i = N; i < stock1_prices.size(); ++i) {
+        float64x2_t sum_vec = vdupq_n_f64(0.0);
+        float64x2_t sq_sum_vec = vdupq_n_f64(0.0);
 
-    for (size_t i = N; i < stock1_prices.size(); ++i) {
-        double sum = 0.0;
-        double sq_sum = 0.0;
-        for(size_t j = 0; j < N; ++j) {
-            sum += spread[j];
-            sq_sum += spread[j] * spread[j];
+        for(size_t j = 0; j < N; j += 2) {
+            float64x2_t spread_vec = vld1q_f64(&spread[j]);
+            sum_vec = vaddq_f64(sum_vec, spread_vec);
+            sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
         }
-        double final_sum = sum;
-        double final_sq_sum = sq_sum;
+
+
+        double sum[2], sq_sum[2];
+        vst1q_f64(sum, sum_vec);
+        vst1q_f64(sq_sum, sq_sum_vec);
+        double final_sum = sum[0] + sum[1];
+        double final_sq_sum = sq_sum[0] + sq_sum[1];
 
         double mean = final_sum / N;
         double stddev = std::sqrt(final_sq_sum / N - mean * mean);
@@ -108,21 +110,17 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
         if(z_score > 1.0) {
             // Long and Short
-            check[0]++;
         } else if(z_score < -1.0) {
             // Short and Long
-            check[1]++;
         } else if (std::abs(z_score) < 0.8) {
             // Close positions
-            check[2]++;
         } else {
             // No signal
-            check[3]++;
         }
 
         spread_index = (spread_index + 1) % N;
+        //copm
     }
-    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 

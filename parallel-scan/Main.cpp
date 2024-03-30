@@ -13,7 +13,7 @@ void test(int N) {
 	srand((unsigned)time(&t));
 	int *in = new int[N];
 	for (int i = 0; i < N; i++) {
-		in[i] = rand() % 10;
+		in[i] = i+1;//rand() % 10;
 	}
 
 	printf("%i Elements \n", N);
@@ -81,9 +81,10 @@ int main()
 
 	int numElements = sizeof(elements) / sizeof(elements[0]);
 
-	for (int i = 0; i < numElements; i++) {
+	/*for (int i = 0; i < numElements; i++) {
 		test(elements[i]);
-	}
+	}*/
+    test(1000);
 
 	return 0;
 }
