@@ -30,7 +30,7 @@
 #include "utils.h"
 
 using namespace std;
-//const int N = 8;
+const int N = 8;
 void test(double in[]) {
     int NN  = 1256;
 	bool canBeBlockscanned = NN <= 1024;
