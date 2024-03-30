@@ -160,7 +160,7 @@ int main()
 int THREADS_PER_BLOCK = 512;
 int ELEMENTS_PER_BLOCK = THREADS_PER_BLOCK * 2;
 
-long sequential_scan(int* output, int* input, int length) {
+long sequential_scan(vector<double>& output, vector<double>& input, int length) {
 	long start_time = get_nanos();
 
 	output[0] = 0; // since this is a prescan, not a scan

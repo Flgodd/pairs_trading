@@ -1,7 +1,8 @@
 #include <stdio.h>
-#include <process.h>
+//#include <process.h>
 #include <time.h>
-
+#include <stdlib.h>
+#include <unistd.h>
 #include "cuda_runtime.h"
 
 #include "utils.h"

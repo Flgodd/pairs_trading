@@ -11,7 +11,7 @@
 int THREADS_PER_BLOCK = 512;
 int ELEMENTS_PER_BLOCK = THREADS_PER_BLOCK * 2;
 
-long sequential_scan(int* output, int* input, int length) {
+long sequential_scan(double* output, double* input, int length) {
 	long start_time = get_nanos();
 
 	output[0] = 0; // since this is a prescan, not a scan
@@ -63,9 +63,9 @@ float blockscan(int *output, int *input, int length, bool bcao){
 	return elapsedTime;
 }
 
-float scan(int *output, int *input, int length, bool bcao) {
-	int *d_out, *d_in;
-	const int arraySize = length * sizeof(int);
+float scan(double *output, double *input, int length, bool bcao) {
+	double *d_out, *d_in;
+	const int arraySize = length * sizeof(double);
 
 	cudaMalloc((void **)&d_out, arraySize);
 	cudaMalloc((void **)&d_in, arraySize);
@@ -102,7 +102,7 @@ float scan(int *output, int *input, int length, bool bcao) {
 }
 
 
-void scanLargeDeviceArray(int *d_out, int *d_in, int length, bool bcao) {
+void scanLargeDeviceArray(double *d_out, double *d_in, int length, bool bcao) {
 	int remainder = length % (ELEMENTS_PER_BLOCK);
 	if (remainder == 0) {
 		scanLargeEvenDeviceArray(d_out, d_in, length, bcao);
@@ -113,31 +113,31 @@ void scanLargeDeviceArray(int *d_out, int *d_in, int length, bool bcao) {
 		scanLargeEvenDeviceArray(d_out, d_in, lengthMultiple, bcao);
 
 		// scan the remaining elements and add the (inclusive) last element of the large scan to this
-		int *startOfOutputArray = &(d_out[lengthMultiple]);
+		double *startOfOutputArray = &(d_out[lengthMultiple]);
 		scanSmallDeviceArray(startOfOutputArray, &(d_in[lengthMultiple]), remainder, bcao);
 
 		add<<<1, remainder>>>(startOfOutputArray, remainder, &(d_in[lengthMultiple - 1]), &(d_out[lengthMultiple - 1]));
 	}
 }
 
-void scanSmallDeviceArray(int *d_out, int *d_in, int length, bool bcao) {
+void scanSmallDeviceArray(double *d_out, double *d_in, int length, bool bcao) {
 	int powerOfTwo = nextPowerOfTwo(length);
 
 	if (bcao) {
-		prescan_arbitrary << <1, (length + 1) / 2, 2 * powerOfTwo * sizeof(int) >> >(d_out, d_in, length, powerOfTwo);
+		prescan_arbitrary << <1, (length + 1) / 2, 2 * powerOfTwo * sizeof(double) >> >(d_out, d_in, length, powerOfTwo);
 	}
 	else {
-		prescan_arbitrary_unoptimized<< <1, (length + 1) / 2, 2 * powerOfTwo * sizeof(int) >> >(d_out, d_in, length, powerOfTwo);
+		prescan_arbitrary_unoptimized<< <1, (length + 1) / 2, 2 * powerOfTwo * sizeof(double) >> >(d_out, d_in, length, powerOfTwo);
 	}
 }
 
-void scanLargeEvenDeviceArray(int *d_out, int *d_in, int length, bool bcao) {
+void scanLargeEvenDeviceArray(double *d_out, double *d_in, int length, bool bcao) {
 	const int blocks = length / ELEMENTS_PER_BLOCK;
-	const int sharedMemArraySize = ELEMENTS_PER_BLOCK * sizeof(int);
+	const double sharedMemArraySize = ELEMENTS_PER_BLOCK * sizeof(double);
 
-	int *d_sums, *d_incr;
-	cudaMalloc((void **)&d_sums, blocks * sizeof(int));
-	cudaMalloc((void **)&d_incr, blocks * sizeof(int));
+	double *d_sums, *d_incr;
+	cudaMalloc((void **)&d_sums, blocks * sizeof(double));
+	cudaMalloc((void **)&d_incr, blocks * sizeof(double));
 
 	if (bcao) {
 		prescan_large<<<blocks, THREADS_PER_BLOCK, 2 * sharedMemArraySize>>>(d_out, d_in, ELEMENTS_PER_BLOCK, d_sums);
