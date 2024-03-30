@@ -134,37 +134,6 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
-__global__ void parallelized_zscore_calculation(
-        const double *stock1_prices,
-        const double *stock2_prices,
-        const double *spread_sum,
-        const double *spread_sq_sum,
-        int *check,
-        size_t N,
-        size_t size) {
-
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (idx >= size) return;
-
-    int i = N + 1 + idx;
-
-    const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;
-    const double stddev = std::sqrt((spread_sq_sum[i-1] - spread_sq_sum[i-N-1])/ N - mean * mean);
-    const double current_spread = stock1_prices[i] - stock2_prices[i];
-    const double z_score = (current_spread - mean) / stddev;
-
-    if (z_score > 1.0) {
-        atomicAdd(&check[0], 1); // Long and Short
-    } else if (z_score < -1.0) {
-        atomicAdd(&check[1], 1); // Short and Long
-    } else if (std::abs(z_score) < 0.8) {
-        atomicAdd(&check[2], 1);  // Close positions
-    } else {
-        atomicAdd(&check[3], 1);  // No signal
-    }
-}
-
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
@@ -231,8 +200,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     int threadsPerBlock = 256;
     int numBlocks = (stock1_prices.size() + threadsPerBlock - 1) / threadsPerBlock;
 
-// Launch the kernel
-    parallelized_zscore_calc<<<numBlocks, threadsPerBlock>>>(/* Pass GPU arrays, N, stock1_prices.size()*/);
+
+    parallelized_zscore_calc<<<numBlocks, threadsPerBlock>>>(d_stock1_prices, d_stock2_prices, d_spread_sum, d_spread_sq_sum, d_check, N, stock1_prices.size());
 
 // Copy results back
     cudaMemcpy(check, d_check, 4 * sizeof(int), cudaMemcpyDeviceToHost);
