@@ -109,6 +109,9 @@ void read_prices() {
 
 }
 
+void calc_z(vector<double>& stock1_prices, vector<double>& stock2_prices, vector<double>& spread_sum, vector<double>& spread_sq_sum, vector<int>& check);
+
+
 
 vector<double> readCSV(const string& filename){
     std::vector<double> prices;
