@@ -111,7 +111,7 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "intel.csv";
+    string gs_file = "Intel.csv";
     string ms_file = "AMD.csv";
 
     stock1_prices = readCSV(gs_file);
