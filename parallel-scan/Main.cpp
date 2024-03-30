@@ -201,7 +201,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     int numBlocks = (stock1_prices.size() + threadsPerBlock - 1) / threadsPerBlock;
 
 
-    parallelized_zscore_calc<<<numBlocks, threadsPerBlock>>>(d_stock1_prices, d_stock2_prices, d_spread_sum, d_spread_sq_sum, d_check, N, stock1_prices.size());
+    parallelized_zscore_calculation<<<numBlocks, threadsPerBlock>>>(d_stock1_prices, d_stock2_prices, d_spread_sum, d_spread_sq_sum, d_check, N, stock1_prices.size());
 
 // Copy results back
     cudaMemcpy(check, d_check, 4 * sizeof(int), cudaMemcpyDeviceToHost);

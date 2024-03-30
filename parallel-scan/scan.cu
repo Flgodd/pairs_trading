@@ -168,7 +168,7 @@ __global__ void parallelized_zscore_calculation(
         const double *spread_sum,
         const double *spread_sq_sum,
         int *check,
-        size_t N,
+        int N,
         size_t size) {
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
