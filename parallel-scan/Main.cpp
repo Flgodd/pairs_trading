@@ -165,46 +165,9 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     }
     spread_sum.back() = last_element + spread_sum[1254];
     spread_sq_sum.back() = (last_element * last_element) + spread_sq_sum[1254];
-int t = 1;
-if(1 == t){
-    const double mean = (spread_sum[N - 1]) / N;
-    const double stddev = std::sqrt((spread_sq_sum[N - 1]) / N - mean * mean);
-    const double current_spread = stock1_prices[N] - stock2_prices[N];
-    const double z_score = (current_spread - mean) / stddev;
-
-
-    if (z_score > 1.0) {
-        check[0]++;  // Long and Short
-    } else if (z_score < -1.0) {
-        check[1]++;  // Short and Long
-    } else if (std::abs(z_score) < 0.8) {
-        check[2]++;  // Close positions
-    } else {
-        check[3]++;  // No signal
-    }
-    cout << check[0] << ":" << check[1] << ":" << check[2] << ":" << check[3] << endl;
-}
 
     calc_z(stock1_prices,stock2_prices,spread_sum, spread_sq_sum,  check);
-    /*for (size_t i = N+1; i < stock1_prices.size(); ++i) {
 
-        const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;
-        const double stddev = std::sqrt((spread_sq_sum[i-1] - spread_sq_sum[i-N-1])/ N - mean * mean);
-        const double current_spread = stock1_prices[i] - stock2_prices[i];
-        const double z_score = (current_spread - mean) / stddev;
-
-
-        if (z_score > 1.0) {
-            check[0]++;  // Long and Short
-        } else if (z_score < -1.0) {
-            check[1]++;  // Short and Long
-        } else if (std::abs(z_score) < 0.8) {
-            check[2]++;  // Close positions
-        } else {
-            check[3]++;  // No signal
-        }
-
-    }*/
     const double mean = (spread_sum[N-1])/ N;
     const double stddev = std::sqrt((spread_sq_sum[N-1])/ N - mean * mean);
     const double current_spread = stock1_prices[N] - stock2_prices[N];
@@ -227,8 +190,10 @@ if(1 == t){
 int main()
 {
     read_prices();
+    long start_time = get_nanos();
     pairs_trading_strategy_optimized<N>(stock1_prices, stock2_prices);
     //test(1000);
-
+    long end_time = get_nanos();
+    cout<<end_time - start_time<<endl;
 	return 0;
 }
