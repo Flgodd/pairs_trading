@@ -165,7 +165,9 @@ void scanLargeEvenDeviceArray(double *d_out, double *d_in, int length, bool bcao
 	cudaFree(d_incr);
 }
 
-void calc_z(std::vector<double>& stock1_prices, vector<double>& stock2_prices, vector<double>& spread_sum, vector<double>& spread_sq_sum, vector<int>& check){
+void calc_z(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices,
+            const std::vector<double>& spread_sum, const std::vector<double>& spread_sq_sum,
+            const std::vector<int>& check) {
     double *d_stock1_prices, *d_stock2_prices, *d_spread_sum, *d_spread_sq_sum;
     int *d_check;
 

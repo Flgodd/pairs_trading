@@ -6,7 +6,9 @@ float scan(double *output, double *input, int length, bool bcao);
 void scanLargeDeviceArray(double *output, double *input, int length, bool bcao);
 void scanSmallDeviceArray(double *d_out, double *d_in, int length, bool bcao);
 void scanLargeEvenDeviceArray(double *output, double *input, int length, bool bcao);
-void calc_z(std::vector<double>& stock1_prices, std::vector<double>& stock2_prices, std::vector<double>& spread_sum, std::vector<double>& spread_sq_sum, std::vector<int>& check);
+void calc_z(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices,
+            const std::vector<double>& spread_sum, const std::vector<double>& spread_sq_sum,
+            const std::vector<int>& check);
 __global__ void parallelized_zscore_calculation(
         const double *stock1_prices,
         const double *stock2_prices,
