@@ -16,11 +16,11 @@
 #include <cmath>
 #include <iostream>
 #include <array>
-#include <experimental/simd>
+//#include <experimental/simd>
 //#include <experimental/execution_policy>
 #include <chrono>
 //#include <experimental/numeric>
-#include <arm_neon.h>
+//#include <arm_neon.h>
 #include <array>
 #include <stdlib.h>
 #include <stdio.h>
@@ -142,21 +142,14 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     }
 
     for(size_t i = N; i < stock1_prices.size(); ++i) {
-        float64x2_t sum_vec = vdupq_n_f64(0.0);
-        float64x2_t sq_sum_vec = vdupq_n_f64(0.0);
-
-        for(size_t j = 0; j < N; j += 2) {
-            float64x2_t spread_vec = vld1q_f64(&spread[j]);
-            sum_vec = vaddq_f64(sum_vec, spread_vec);
-            sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
+        double sum = 0.0;
+        double sq_sum = 0.0;
+        for(size_t j = 0; j < N; ++j) {
+            sum += spread[j];
+            sq_sum += spread[j] * spread[j];
         }
-
-
-        double sum[2], sq_sum[2];
-        vst1q_f64(sum, sum_vec);
-        vst1q_f64(sq_sum, sq_sum_vec);
-        double final_sum = sum[0] + sum[1];
-        double final_sq_sum = sq_sum[0] + sq_sum[1];
+        double final_sum = sum;
+        double final_sq_sum = sq_sum;
 
         double mean = final_sum / N;
         double stddev = std::sqrt(final_sq_sum / N - mean * mean);
