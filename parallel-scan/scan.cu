@@ -11,6 +11,8 @@
 int THREADS_PER_BLOCK = 512;
 int ELEMENTS_PER_BLOCK = THREADS_PER_BLOCK * 2;
 
+using namespace std;
+
 long sequential_scan(double* output, double* input, int length) {
 	long start_time = get_nanos();
 
