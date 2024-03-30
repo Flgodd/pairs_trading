@@ -72,6 +72,7 @@ void test(double in[]) {
     cudaEventSynchronize(stop);
     float elapsedTime = 0;
     cudaEventElapsedTime(&elapsedTime, start, stop);
+    cout<<"in test: "<<elapsedTime<<endl;
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
 		/*if (canBeBlockscanned) {
