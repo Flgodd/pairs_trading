@@ -16,13 +16,13 @@
 #include <cmath>
 #include <iostream>
 #include <array>
-#include <experimental/simd>
+//#include <experimental/simd>
 //#include <experimental/execution_policy>
 #include <chrono>
 //#include <experimental/numeric>
-#include <arm_neon.h>
+//#include <arm_neon.h>
 #include <array>
-#include <experimental/simd>
+
 
 
 using namespace std;
@@ -89,21 +89,17 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     using float64_v = native_simd<double>;
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
-        float64_v sum_vec = float64_v(0.0);
-        float64_v sq_sum_vec = float64_v(0.0);
-
-        for (size_t j = 0; j < N; j += float64_v::size()) {
-            float64_v spread_vec;
-            spread_vec.copy_from(&spread[j], std::experimental::element_aligned);
-            sum_vec += spread_vec;
-            sq_sum_vec += spread_vec * spread_vec;
+        double sum = 0.0;
+        double sq_sum = 0.0;
+        for(size_t j = 0; j < N; ++j) {
+            sum += spread[j];
+            sq_sum += spread[j] * spread[j];
         }
+        double final_sum = sum;
+        double final_sq_sum = sq_sum;
 
-        double sum = reduce(sum_vec);
-        double sq_sum = reduce(sq_sum_vec);
-
-        double mean = sum / N;
-        double stddev = std::sqrt(sq_sum / N - mean * mean);
+        double mean = final_sum / N;
+        double stddev = std::sqrt(final_sq_sum / N - mean * mean);
 
         double current_spread = stock1_prices[i] - stock2_prices[i];
         double z_score = (current_spread - mean) / stddev;
