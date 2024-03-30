@@ -127,6 +127,28 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
+__global__ void calculate_signals(const double* stock1_prices, const double* stock2_prices,
+                                  const double* spread_sum, const double* spread_sq_sum,
+                                  size_t N, size_t size, int* check) {
+    size_t i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= N + 1 && i < size) {
+        const double mean = (spread_sum[i - 1] - spread_sum[i - N - 1]) / N;
+        const double stddev = sqrt((spread_sq_sum[i - 1] - spread_sq_sum[i - N - 1]) / N - mean * mean);
+        const double current_spread = stock1_prices[i] - stock2_prices[i];
+        const double z_score = (current_spread - mean) / stddev;
+
+        if (z_score > 1.0) {
+            atomicAdd(&check[0], 1); // Long and Short
+        } else if (z_score < -1.0) {
+            atomicAdd(&check[1], 1); // Short and Long
+        } else if (fabs(z_score) < 0.8) {
+            atomicAdd(&check[2], 1); // Close positions
+        } else {
+            atomicAdd(&check[3], 1); // No signal
+        }
+    }
+}
+
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
@@ -175,8 +197,28 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         check[3]++;  // No signal
     }
 
+    size_t size = stock1_prices.size();
+    thrust::device_vector<double> d_stock1_prices = stock1_prices;
+    thrust::device_vector<double> d_stock2_prices = stock2_prices;
+    thrust::device_vector<double> d_spread_sum = spread_sum;
+    thrust::device_vector<double> d_spread_sq_sum = spread_sq_sum;
+    thrust::device_vector<int> d_check(4, 0);
 
-    for (size_t i = N+1; i < stock1_prices.size(); ++i) {
+    size_t threadsPerBlock = 256;
+    size_t blocksPerGrid = (size + threadsPerBlock - 1) / threadsPerBlock;
+
+    calculate_signals<<<blocksPerGrid, threadsPerBlock>>>(
+            thrust::raw_pointer_cast(d_stock1_prices.data()),
+                    thrust::raw_pointer_cast(d_stock2_prices.data()),
+                    thrust::raw_pointer_cast(d_spread_sum.data()),
+                    thrust::raw_pointer_cast(d_spread_sq_sum.data()),
+                    N, size, thrust::raw_pointer_cast(d_check.data()));
+
+    thrust::host_vector<int> h_check = d_check;
+    std::cout << h_check[0] << ":" << h_check[1] << ":" << h_check[2] << ":" << h_check[3] << std::endl;
+
+
+    /*for (size_t i = N+1; i < stock1_prices.size(); ++i) {
 
         const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;
         const double stddev = std::sqrt((spread_sq_sum[i-1] - spread_sq_sum[i-N-1])/ N - mean * mean);
@@ -195,7 +237,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         }
 
     }
-    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;*/
 
 }
 
