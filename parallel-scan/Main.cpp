@@ -208,7 +208,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     thrust::device_vector<double> d_stock2_prices = stock2_prices;
     thrust::device_vector<double> d_spread_sum = spread_sum;
     thrust::device_vector<double> d_spread_sq_sum = spread_sq_sum;
-    thrust::device_vector<int> d_check(4, 0);
+    thrust::device_vector<int> d_check(4);
 
     size_t threadsPerBlock = 256;
     size_t blocksPerGrid = (size + threadsPerBlock - 1) / threadsPerBlock;
