@@ -76,8 +76,9 @@ void test(double in[]) {
 
 	printf("\n");
 
-	//delete[] in;
-    in = *outGPU;
+    for (int i = 0; i < size; i++) {
+        in[i] = outGPU[i];
+    }
 	delete[] outHost;
 	delete[] outGPU;
 	delete[] outGPU_bcao;
