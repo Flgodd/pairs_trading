@@ -193,7 +193,7 @@ void calc_z(const std::vector<double>& stock1_prices, const std::vector<double>&
     parallelized_zscore_calculation<<<numBlocks, threadsPerBlock >>>(d_stock1_prices, d_stock2_prices, d_spread_sum, d_spread_sq_sum, d_check, N, stock1_prices.size());
 
 // Copy results back
-    cudaMemcpy(check, d_check, check.size() * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(check.data(), d_check, check.size() * sizeof(int), cudaMemcpyDeviceToHost);
 
 // Print results
     //std::cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<std::endl;
