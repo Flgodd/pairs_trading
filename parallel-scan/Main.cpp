@@ -76,6 +76,7 @@ void test(double in[]) {
 	printf("\n");
 
     for (int i = 0; i < 1256; i++) {
+        if(outHost[i] != outGPU[i])cout<<"outHost:"<<outHost[i]<<" outGPU:"<<outGPU[i]<<endl;
         in[i] = outGPU[i];
     }
 	delete[] outHost;
