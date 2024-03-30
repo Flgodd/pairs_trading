@@ -51,14 +51,14 @@ void test(double in[]) {
 
 	printf("%i Elements \n", NN);
 
-		// sequential scan on CPU
+		/*// sequential scan on CPU
 		double *outHost = new double[NN]();
 		long time_host = sequential_scan(outHost, in, NN);
-		printResult("host    ", outHost[NN - 1], time_host);
-		// full scan
+		printResult("host    ", outHost[NN - 1], time_host);*/
+		/*// full scan
 		double *outGPU = new double[NN]();
 		float time_gpu = scan(outGPU, in, NN, false);
-		printResult("gpu     ", outGPU[NN - 1], time_gpu);
+		printResult("gpu     ", outGPU[NN - 1], time_gpu);*/
 	
 		// full scan with BCAO
 		double *outGPU_bcao = new double[NN]();
