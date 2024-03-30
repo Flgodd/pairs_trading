@@ -196,7 +196,7 @@ void calc_z(const std::vector<double>& stock1_prices, const std::vector<double>&
     cudaMemcpy(check, d_check, 4 * sizeof(int), cudaMemcpyDeviceToHost);
 
 // Print results
-    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    std::cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<std::endl;
 
     cudaFree(d_stock1_prices);
     cudaFree(d_stock2_prices);
