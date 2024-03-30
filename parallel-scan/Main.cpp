@@ -149,28 +149,26 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     vector<int> check(4, 0);
 
 
-
-    for(int i = 0; i<stock1_prices.size(); i++){
+    for (int i = 0; i < stock1_prices.size(); i++) {
         const double current_spread = stock1_prices[i] - stock2_prices[i];
         spread_sum_f[i] = current_spread;
-        spread_sq_sum_f[i] = current_spread*current_spread;
+        spread_sq_sum_f[i] = current_spread * current_spread;
     }
     double last_element = spread_sum_f[1255];
 
     test(spread_sum_f);
     test(spread_sq_sum_f);
 
-    for(int i = 1; i<1256; i++){
-        spread_sum[i-1] = spread_sum_f[i];
-        spread_sq_sum[i-1] = spread_sq_sum_f[i];
+    for (int i = 1; i < 1256; i++) {
+        spread_sum[i - 1] = spread_sum_f[i];
+        spread_sq_sum[i - 1] = spread_sq_sum_f[i];
     }
     spread_sum.back() = last_element + spread_sum[1254];
-    spread_sq_sum.back() = (last_element*last_element) + spread_sq_sum[1254];
-
-
-
-    const double mean = (spread_sum[N-1])/ N;
-    const double stddev = std::sqrt((spread_sq_sum[N-1])/ N - mean * mean);
+    spread_sq_sum.back() = (last_element * last_element) + spread_sq_sum[1254];
+int t = 1;
+if(1 == t){
+    const double mean = (spread_sum[N - 1]) / N;
+    const double stddev = std::sqrt((spread_sq_sum[N - 1]) / N - mean * mean);
     const double current_spread = stock1_prices[N] - stock2_prices[N];
     const double z_score = (current_spread - mean) / stddev;
 
@@ -184,7 +182,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     } else {
         check[3]++;  // No signal
     }
-    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    cout << check[0] << ":" << check[1] << ":" << check[2] << ":" << check[3] << endl;
+}
 
     calc_z(stock1_prices,stock2_prices,spread_sum, spread_sq_sum,  check);
     /*for (size_t i = N+1; i < stock1_prices.size(); ++i) {
