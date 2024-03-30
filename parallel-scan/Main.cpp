@@ -205,7 +205,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 int main()
 {
     read_prices();
-    cout<<stock1_prices.size()<<endl;
+    cout<<stock1_prices.size()<<":"<<stock2_prices.size()<<endl;
     long start_time = get_nanos();
     //pairs_trading_strategy_optimized<N>(stock1_prices, stock2_prices);
     long end_time = get_nanos();
