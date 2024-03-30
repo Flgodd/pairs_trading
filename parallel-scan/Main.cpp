@@ -59,7 +59,7 @@ void test(double in[]) {
 		float time_gpu_bcao = scan(outGPU_bcao, in, N, true);
 		printResult("gpu bcao", outGPU_bcao[N - 1], time_gpu_bcao);
 
-		if (canBeBlockscanned) {
+		/*if (canBeBlockscanned) {
 			// basic level 1 block scan
 			int *out_1block = new int[N]();
 			float time_1block = blockscan(out_1block, in, N, false);
@@ -72,7 +72,7 @@ void test(double in[]) {
 
 			delete[] out_1block;
 			delete[] out_1block_bcao;
-		}
+		}*/
 
 	printf("\n");
 
