@@ -76,7 +76,7 @@ void test(double in[]) {
 	printf("\n");
 
     for (int i = 0; i < 1256; i++) {
-        in[i] = outGPU[i];
+        in[i] = outHost[i];
     }
 	delete[] outHost;
 	delete[] outGPU;
