@@ -178,7 +178,7 @@ void calc_z(const std::vector<double>& stock1_prices, const std::vector<double>&
     cudaMalloc((void**)&d_stock2_prices, stock2_prices.size() * sizeof(double));
     cudaMalloc((void**)&d_spread_sum, spread_sum.size() * sizeof(double));
     cudaMalloc((void**)&d_spread_sq_sum, spread_sq_sum.size() * sizeof(double));
-    cudaMalloc((void**)&d_check, 4 * sizeof(int)); // Assuming 'check' has size 4
+    cudaMalloc((void**)&d_check, check.size() * sizeof(int)); // Assuming 'check' has size 4
 
 // Data Transfer to the GPU
     cudaMemcpy(d_stock1_prices, stock1_prices.data(), stock1_prices.size() * sizeof(double), cudaMemcpyHostToDevice);
@@ -196,7 +196,7 @@ void calc_z(const std::vector<double>& stock1_prices, const std::vector<double>&
     cudaMemcpy(check, d_check, 4 * sizeof(int), cudaMemcpyDeviceToHost);
 
 // Print results
-    std::cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<std::endl;
+    //std::cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<std::endl;
 
     cudaFree(d_stock1_prices);
     cudaFree(d_stock2_prices);
