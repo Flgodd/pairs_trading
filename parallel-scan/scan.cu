@@ -177,11 +177,13 @@ __global__ void parallelized_zscore_calculation(
         size_t size) {
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    printf("idx:%d\n", idx);
-    if (idx >= size) return;
+    //printf("idx:%d\n", idx);
+    //if (idx >= size) return;
+    if (idx >= size - N - 1) return;
+
 
     int i = N + 1 + idx;
-    printf("i:%d\n", i);
+    //printf("i:%d\n", i);
     const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;
     const double stddev = std::sqrt((spread_sq_sum[i-1] - spread_sq_sum[i-N-1])/ N - mean * mean);
     const double current_spread = stock1_prices[i] - stock2_prices[i];
@@ -218,7 +220,9 @@ void calc_z(const std::vector<double>& stock1_prices, const std::vector<double>&
     cudaMemcpy(d_spread_sq_sum, spread_sq_sum.data(), spread_sq_sum.size() * sizeof(double), cudaMemcpyHostToDevice);
 
     int threadsPerBlock = 512;
-    int numBlocks = (stock1_prices.size() + threadsPerBlock - 1) / threadsPerBlock;
+    //int numBlocks = (stock1_prices.size() + threadsPerBlock - 1) / threadsPerBlock;
+    int numBlocks = (stock1_prices.size() - N - 1 + threadsPerBlock - 1) / threadsPerBlock;
+
     printf("%d\n", numBlocks);
 
     parallelized_zscore_calculation<<<numBlocks, threadsPerBlock >>>(d_stock1_prices, d_stock2_prices, d_spread_sum, d_spread_sq_sum, d_check, N, stock1_prices.size());
