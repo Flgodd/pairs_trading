@@ -59,11 +59,14 @@ void test(double in[]) {
 		double *outGPU = new double[NN]();
 		float time_gpu = scan(outGPU, in, NN, false);
 		printResult("gpu     ", outGPU[NN - 1], time_gpu);*/
-	
+        long f_start_time = get_nanos();
 		// full scan with BCAO
 		double *outGPU_bcao = new double[NN]();
 		float time_gpu_bcao = scan(outGPU_bcao, in, NN, true);
 		printResult("gpu bcao", outGPU_bcao[NN - 1], time_gpu_bcao);
+
+    long f_end_time = get_nanos();
+    cout<<"in test: "<<f_end_time - f_start_time<<endl;
 
 		/*if (canBeBlockscanned) {
 			// basic level 1 block scan
@@ -82,10 +85,10 @@ void test(double in[]) {
 
 	printf("\n");
 
-   /* for (int i = 0; i < 1256; i++) {
+    for (int i = 0; i < 1256; i++) {
         //if(outHost[i] != outGPU[i])cout<<"outHost:"<<outHost[i]<<" outGPU:"<<outGPU[i]<<endl;
         in[i] = outGPU_bcao[i];
-    }*/
+    }
 	//delete[] outHost;
 	//delete[] outGPU;
 	delete[] outGPU_bcao;
