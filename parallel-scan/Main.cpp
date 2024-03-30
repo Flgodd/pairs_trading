@@ -29,6 +29,8 @@
 #include "scan.cuh"
 #include "utils.h"
 
+using namespace std;
+
 void test(double in[]) {
     int N  = in.size();
 	bool canBeBlockscanned = N <= 1024;
