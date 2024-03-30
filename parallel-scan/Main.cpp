@@ -86,8 +86,8 @@ void test(double in[]) {
         //if(outHost[i] != outGPU[i])cout<<"outHost:"<<outHost[i]<<" outGPU:"<<outGPU[i]<<endl;
         in[i] = outGPU_bcao[i];
     }
-	delete[] outHost;
-	delete[] outGPU;
+	//delete[] outHost;
+	//delete[] outGPU;
 	delete[] outGPU_bcao;
 }
 
