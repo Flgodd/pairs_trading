@@ -151,7 +151,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     for(int i = 1; i<1256; i++){
         spread_sum[i-1] = spread_sum_f[i];
-        spread_sq_um[i-1] = spread_sq_sum_f[i];
+        spread_sq_sum[i-1] = spread_sq_sum_f[i];
     }
     spread_sum.back() = last_element;
     spread_sq_sum.back() = last_element* last_element;
