@@ -182,40 +182,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         check[3]++;  // No signal
     }
 
-    double *d_stock1_prices, *d_stock2_prices, *d_spread_sum, *d_spread_sq_sum;
-    int *d_check;
-
-    cudaMalloc((void**)&d_stock1_prices, stock1_prices.size() * sizeof(double));
-    cudaMalloc((void**)&d_stock2_prices, stock2_prices.size() * sizeof(double));
-    cudaMalloc((void**)&d_spread_sum, spread_sum.size() * sizeof(double));
-    cudaMalloc((void**)&d_spread_sq_sum, spread_sq_sum.size() * sizeof(double));
-    cudaMalloc((void**)&d_check, 4 * sizeof(int)); // Assuming 'check' has size 4
-
-// Data Transfer to the GPU
-    cudaMemcpy(d_stock1_prices, stock1_prices.data(), stock1_prices.size() * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_stock2_prices, stock2_prices.data(), stock2_prices.size() * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_spread_sum, spread_sum.data(), spread_sum.size() * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_spread_sq_sum, spread_sq_sum.data(), spread_sq_sum.size() * sizeof(double), cudaMemcpyHostToDevice);
-
-    int threadsPerBlock = 256;
-    int numBlocks = (stock1_prices.size() + threadsPerBlock - 1) / threadsPerBlock;
-
-
-    parallelized_zscore_calculation<<<numBlocks, threadsPerBlock>>>(d_stock1_prices, d_stock2_prices, d_spread_sum, d_spread_sq_sum, d_check, N, stock1_prices.size());
-
-// Copy results back
-    cudaMemcpy(check, d_check, 4 * sizeof(int), cudaMemcpyDeviceToHost);
-
-// Print results
-    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
-
-    cudaFree(d_stock1_prices);
-    cudaFree(d_stock2_prices);
-    cudaFree(d_spread_sum);
-    cudaFree(d_spread_sq_sum);
-    cudaFree(d_check);
-
-
+    calc_z(stock1_prices,stock2_prices,spread_sum, spread_sq_sum,  check);
     /*for (size_t i = N+1; i < stock1_prices.size(); ++i) {
 
         const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;

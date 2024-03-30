@@ -162,6 +162,42 @@ void scanLargeEvenDeviceArray(double *d_out, double *d_in, int length, bool bcao
 	cudaFree(d_incr);
 }
 
+void calc_z(vector<double>& stock1_prices, vector<double>& stock2_prices, vector<double>& spread_sum, vector<double>& spread_sq_sum, vector<int>& check){
+    double *d_stock1_prices, *d_stock2_prices, *d_spread_sum, *d_spread_sq_sum;
+    int *d_check;
+
+    cudaMalloc((void**)&d_stock1_prices, stock1_prices.size() * sizeof(double));
+    cudaMalloc((void**)&d_stock2_prices, stock2_prices.size() * sizeof(double));
+    cudaMalloc((void**)&d_spread_sum, spread_sum.size() * sizeof(double));
+    cudaMalloc((void**)&d_spread_sq_sum, spread_sq_sum.size() * sizeof(double));
+    cudaMalloc((void**)&d_check, 4 * sizeof(int)); // Assuming 'check' has size 4
+
+// Data Transfer to the GPU
+    cudaMemcpy(d_stock1_prices, stock1_prices.data(), stock1_prices.size() * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_stock2_prices, stock2_prices.data(), stock2_prices.size() * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_spread_sum, spread_sum.data(), spread_sum.size() * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_spread_sq_sum, spread_sq_sum.data(), spread_sq_sum.size() * sizeof(double), cudaMemcpyHostToDevice);
+
+    int threadsPerBlock = 256;
+    int numBlocks = (stock1_prices.size() + threadsPerBlock - 1) / threadsPerBlock;
+
+
+    parallelized_zscore_calculation<<<numBlocks, threadsPerBlock >>>(d_stock1_prices, d_stock2_prices, d_spread_sum, d_spread_sq_sum, d_check, N, stock1_prices.size());
+
+// Copy results back
+    cudaMemcpy(check, d_check, 4 * sizeof(int), cudaMemcpyDeviceToHost);
+
+// Print results
+    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+
+    cudaFree(d_stock1_prices);
+    cudaFree(d_stock2_prices);
+    cudaFree(d_spread_sum);
+    cudaFree(d_spread_sq_sum);
+    cudaFree(d_check);
+}
+
+
 __global__ void parallelized_zscore_calculation(
         const double *stock1_prices,
         const double *stock2_prices,
