@@ -69,6 +69,10 @@ long sequential_scan(double* output, double* input, int length) {
 }*/
 
 float scan(double *output, double *input, int length, bool bcao) {
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start);
 	double *d_out, *d_in;
 	const int arraySize = length * sizeof(double);
 
@@ -77,11 +81,11 @@ float scan(double *output, double *input, int length, bool bcao) {
 	cudaMemcpy(d_out, output, arraySize, cudaMemcpyHostToDevice);
 	cudaMemcpy(d_in, input, arraySize, cudaMemcpyHostToDevice);
 
-	// start timer
+	/*// start timer
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
-	cudaEventRecord(start);
+	cudaEventRecord(start);*/
 
 	if (length > ELEMENTS_PER_BLOCK) {
 		scanLargeDeviceArray(d_out, d_in, length, bcao);
@@ -91,12 +95,17 @@ float scan(double *output, double *input, int length, bool bcao) {
 	}
 
 	// end timer
-	cudaEventRecord(stop);
+	/*cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	float elapsedTime = 0;
-	cudaEventElapsedTime(&elapsedTime, start, stop);
+	cudaEventElapsedTime(&elapsedTime, start, stop);*/
 
 	cudaMemcpy(output, d_out, arraySize, cudaMemcpyDeviceToHost);
+
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    float elapsedTime = 0;
+    cudaEventElapsedTime(&elapsedTime, start, stop);
 
 	cudaFree(d_out);
 	cudaFree(d_in);
