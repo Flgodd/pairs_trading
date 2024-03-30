@@ -136,11 +136,15 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     vector<int> check(4, 0);
 
 
+
     for(int i = 0; i<stock1_prices.size(); i++){
         const double current_spread = stock1_prices[i] - stock2_prices[i];
         spread_sum[i] = current_spread;
         spread_sq_sum[i] = current_spread*current_spread;
     }
+
+    test(spread_sum);
+    test(spread_sq_sum);
 
 
 
