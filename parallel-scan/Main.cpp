@@ -156,8 +156,11 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     }
     double last_element = spread_sum_f[1255];
 
+    long f_start_time = get_nanos();
     test(spread_sum_f);
     test(spread_sq_sum_f);
+    long f_end_time = get_nanos();
+    cout<<"test: "<<f_end_time - f_start_time<<endl;
 
     for (int i = 1; i < 1256; i++) {
         spread_sum[i - 1] = spread_sum_f[i];
