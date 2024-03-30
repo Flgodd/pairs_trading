@@ -167,6 +167,37 @@ void scanLargeEvenDeviceArray(double *d_out, double *d_in, int length, bool bcao
 	cudaFree(d_incr);
 }
 
+__global__ void parallelized_zscore_calculation(
+        const double *stock1_prices,
+        const double *stock2_prices,
+        const double *spread_sum,
+        const double *spread_sq_sum,
+        int *check,
+        int N,
+        size_t size) {
+
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= size) return;
+
+    int i = N + 1 + idx;
+
+    const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;
+    const double stddev = std::sqrt((spread_sq_sum[i-1] - spread_sq_sum[i-N-1])/ N - mean * mean);
+    const double current_spread = stock1_prices[i] - stock2_prices[i];
+    const double z_score = (current_spread - mean) / stddev;
+
+    if (z_score > 1.0) {
+        atomicAdd(&check[0], 1); // Long and Short
+    } else if (z_score < -1.0) {
+        atomicAdd(&check[1], 1); // Short and Long
+    } else if (std::abs(z_score) < 0.8) {
+        atomicAdd(&check[2], 1);  // Close positions
+    } else {
+        atomicAdd(&check[3], 1);  // No signal
+    }
+}
+
 void calc_z(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices,
             const std::vector<double>& spread_sum, const std::vector<double>& spread_sq_sum,
             std::vector<int>& check) {
@@ -203,36 +234,4 @@ void calc_z(const std::vector<double>& stock1_prices, const std::vector<double>&
     cudaFree(d_spread_sum);
     cudaFree(d_spread_sq_sum);
     cudaFree(d_check);
-}
-
-
-__global__ void parallelized_zscore_calculation(
-        const double *stock1_prices,
-        const double *stock2_prices,
-        const double *spread_sum,
-        const double *spread_sq_sum,
-        int *check,
-        int N,
-        size_t size) {
-
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (idx >= size) return;
-
-    int i = N + 1 + idx;
-
-    const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;
-    const double stddev = std::sqrt((spread_sq_sum[i-1] - spread_sq_sum[i-N-1])/ N - mean * mean);
-    const double current_spread = stock1_prices[i] - stock2_prices[i];
-    const double z_score = (current_spread - mean) / stddev;
-
-    if (z_score > 1.0) {
-        atomicAdd(&check[0], 1); // Long and Short
-    } else if (z_score < -1.0) {
-        atomicAdd(&check[1], 1); // Short and Long
-    } else if (std::abs(z_score) < 0.8) {
-        atomicAdd(&check[2], 1);  // Close positions
-    } else {
-        atomicAdd(&check[3], 1);  // No signal
-    }
 }
