@@ -25,7 +25,8 @@
 #include <stdio.h>
 
 #include <time.h>
-#include <cuda_runtime.h>
+#include <cuda_runtime.h> // This usually provides basic atomics
+#include <atomic>
 #include <device_launch_parameters.h>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
