@@ -32,7 +32,7 @@
 using namespace std;
 
 void test(double in[]) {
-    int N  = in.size();
+    int N  = 1256;
 	bool canBeBlockscanned = N <= 1024;
 
 	time_t t;
