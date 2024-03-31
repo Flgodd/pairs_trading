@@ -138,8 +138,8 @@ vector<double> readCSV(const string& filename){
         while (std::getline(ss, value, ',')) {
             row.push_back(value);
         }
-
-        double adjClose = std::stod(row[4]);
+        //chenge to 4 for intel and amd and 5 for GS and MS
+        double adjClose = std::stod(row[5]);
         prices.push_back(adjClose);
     }
 
