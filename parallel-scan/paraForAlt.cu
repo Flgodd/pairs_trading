@@ -20,7 +20,7 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
 
     for (int i = idx; i < 1256; i += stride) {
         spread[i] = stock1_prices[i] - stock2_prices[i];
-        std::cout<<spread[i]<<std::endl;
+        printf("spread:%d\n", spread[i]);
     }
 
     __syncthreads();
