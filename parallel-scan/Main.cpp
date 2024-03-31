@@ -164,7 +164,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         spread_sum_f[i] = current_spread;
         spread_sq_sum_f[i] = current_spread * current_spread;
     }*/
-    fillArrays(stock1_prices, stock2_prices, spread_sum, spread_sq_sum, spread_size);
+    fillArrays(stock1_prices, stock2_prices, spread_sum_f, spread_sq_sum_f, spread_size);
     //double last_element = spread_sum_f[1255];
 
     long f_start_time = get_nanos();
