@@ -190,11 +190,11 @@ __global__ void parallelized_zscore_calculation(
     //if (idx >= size) return;
     //if(idx >= 1247)printf("idx:%d\n", idx);
     if (idx >= size - N) return;
-    if(idx >= 1247)printf("idx:%d\n", idx);
+    //if(idx >= 1247)printf("idx:%d\n", idx);
 
     int i = N + idx;
     //printf("i:%d\n", i);
-    if(i >= size)return;
+    //if(i >= size)return;
     //printf("i:%d\n", i);
     const double mean = (spread_sum[i] - spread_sum[i-N])/ N;
     const double stddev = std::sqrt((spread_sq_sum[i] - spread_sq_sum[i-N])/ N - mean * mean);
@@ -202,13 +202,13 @@ __global__ void parallelized_zscore_calculation(
     const double z_score = (current_spread - mean) / stddev;
 
     if (z_score > 1.0) {
-        atomicAdd(&check[0], 1); // Long and Short
+        //atomicAdd(&check[0], 1); // Long and Short
     } else if (z_score < -1.0) {
-        atomicAdd(&check[1], 1); // Short and Long
+        //atomicAdd(&check[1], 1); // Short and Long
     } else if (std::abs(z_score) < 0.8) {
-        atomicAdd(&check[2], 1);  // Close positions
+        //atomicAdd(&check[2], 1);  // Close positions
     } else {
-        atomicAdd(&check[3], 1);  // No signal
+        //atomicAdd(&check[3], 1);  // No signal
     }
 }
 
