@@ -16,7 +16,8 @@
 #include <cmath>
 #include <iostream>
 #include <array>
-#include <experimental/simd>
+#include <immintrin.h>
+//#include <experimental/simd>
 //#include <experimental/execution_policy>
 #include <chrono>
 //#include <experimental/numeric>
@@ -26,7 +27,7 @@
 
 using namespace std;
 
-namespace simd = std::experimental;
+//namespace simd = std::experimental;
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
