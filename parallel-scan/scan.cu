@@ -323,3 +323,46 @@ void calc_zz(const std::vector<double>& stock1_prices, const std::vector<double>
     cudaFree(d_spread_sq_sum);
     cudaFree(d_check);
 }
+
+__global__ void para_fill(const double *stock1_prices,
+                          const double *stock2_prices,
+                          double *spread_sum,
+                          double *spread_sq_sum,
+                          size_t size){
+    if(idx >= size)return;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const double current_spread = stock1_prices[idx] - stock2_prices[idx];
+    spread_sum[idx] = current_spread;
+    spread_sq_sum[idx] = current_spread * current_spread;
+}
+
+
+void fillArrays(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices,
+                             double spread_sum[], double spread_sq_sum[], size_t spread_size){
+    double *d_stock1_prices, *d_stock2_prices, *d_spread_sum, *d_spread_sq_sum;
+
+    cudaMalloc((void**)&d_stock1_prices, stock1_prices.size() * sizeof(double));
+    cudaMalloc((void**)&d_stock2_prices, stock2_prices.size() * sizeof(double));
+    cudaMalloc((void**)&d_spread_sum, spread_size * sizeof(double));
+    cudaMalloc((void**)&d_spread_sq_sum, spread_size * sizeof(double));
+
+    cudaMemcpy(d_stock1_prices, stock1_prices.data(), stock1_prices.size() * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_stock2_prices, stock2_prices.data(), stock2_prices.size() * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_spread_sum, spread_sum, spread_size * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_spread_sq_sum, spread_sq_sum, spread_size * sizeof(double), cudaMemcpyHostToDevice);
+
+    int threadsPerBlock = 512;
+
+    int numBlocks = (stock1_prices.size() + threadsPerBlock - 1) / threadsPerBlock;
+
+    para_fill<<<numBlocks, threadsPerBlock >>>(d_stock1_prices, d_stock2_prices, d_spread_sum, d_spread_sq_sum, spread_size);
+
+    cudaMemcpy(spread_sum, d_spread_sum, spread_size * sizeof(double), cudaMemcpyDeviceToHost);
+    cudaMemcpy(spread_sq_sum, d_spread_sq_sum, spread_size * sizeof(double), cudaMemcpyDeviceToHost);
+
+
+    cudaFree(d_stock1_prices);
+    cudaFree(d_stock2_prices);
+    cudaFree(d_spread_sum);
+    cudaFree(d_spread_sq_sum);
+}
