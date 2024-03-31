@@ -49,7 +49,7 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
 
         sum = simd_sum.x + simd_sum.y;
         sq_sum = simd_sq_sum.x + simd_sq_sum.y;*/
-#pragma unroll
+//#pragma unroll
         for (int j = 0; j < N; j++) {
             double val = stock1_prices[start + j] - stock2_prices[start+j];
             sum += val;
