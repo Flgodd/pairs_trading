@@ -37,14 +37,14 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
         for (int j = 0; j < N; j += 2) {
             double2 prices1 = reinterpret_cast<const double2*>(stock1_prices + start + j)[0];
             double2 prices2 = reinterpret_cast<const double2*>(stock2_prices + start + j)[0];
-            double2 diff = prices1 - prices2;
+            double2 diff = make_double2(__dsub_rn(prices1.x, prices2.x), __dsub_rn(prices1.y, prices2.y));
 
-            simd_sum += diff;
-            simd_sq_sum += diff * diff;
+            simd_sum = make_double2(__dadd_rn(simd_sum.x, diff.x), __dadd_rn(simd_sum.y, diff.y));
+            simd_sq_sum = make_double2(__dmul_rn(diff.x, diff.x), __dmul_rn(diff.y, diff.y));
         }
 
-        sum = simd_sum.x + simd_sum.y;
-        sq_sum = simd_sq_sum.x + simd_sq_sum.y;
+        sum = __dadd_rn(simd_sum.x, simd_sum.y);
+        sq_sum = __dadd_rn(simd_sq_sum.x, simd_sq_sum.y);
 
         double mean = sum / N;
         double stddev = sqrt(sq_sum / N - mean * mean);
