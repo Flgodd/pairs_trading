@@ -173,16 +173,16 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     test(spread_sq_sum_f);
 
 
-   /* for (int i = 1; i < 9866; i++) {
+    for (int i = 1; i < 1256; i++) {
         spread_sum[i - 1] = spread_sum_f[i];
         spread_sq_sum[i - 1] = spread_sq_sum_f[i];
     }
-    spread_sum.back() = last_element + spread_sum[9864];
-    spread_sq_sum.back() = (last_element * last_element) + spread_sq_sum[9864];
+    spread_sum.back() = last_element + spread_sum[1254];
+    spread_sq_sum.back() = (last_element * last_element) + spread_sq_sum[1254];
     long start_time = get_nanos();
     calc_z(stock1_prices,stock2_prices,spread_sum, spread_sq_sum,  check);
     long end_time = get_nanos();
-    cout<<"calc_z: "<<end_time - start_time<<endl;*/
+    cout<<"calc_z: "<<end_time - start_time<<endl;
 
    double for_final_calc_sum = last_element + spread_sum_f[1255];
    double for_final_calc_sq_sum = (last_element * last_element) + spread_sq_sum_f[1255];
@@ -223,7 +223,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     } else {
         check[3]++;  // No signal
     }*/
-    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+   // cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
