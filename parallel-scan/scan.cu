@@ -184,10 +184,10 @@ __global__ void parallelized_zscore_calculation(
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int i = idx + N + 1;
 
-    if (i >= size - 1) return;
+    if (i >= size) return;
 
-    const double mean = (spread_sum[i-1] - spread_sum[i-N-1]) / N;
-    const double stddev = std::sqrt((spread_sq_sum[i-1] - spread_sq_sum[i-N-1]) / N - mean * mean);
+    const double mean = (spread_sum[i+1] - spread_sum[i-N+1]) / N;
+    const double stddev = std::sqrt((spread_sq_sum[i+1] - spread_sq_sum[i-N+1]) / N - mean * mean);
     const double current_spread = stock1_prices[i] - stock2_prices[i];
     const double z_score = (current_spread - mean) / stddev;
 
@@ -263,7 +263,7 @@ void calc_zz(const std::vector<double>& stock1_prices, const std::vector<double>
 
     int threadsPerBlock = 512;
 
-    int numBlocks = (stock1_prices.size() - N - 2 + threadsPerBlock - 1) / threadsPerBlock;
+    int numBlocks = (stock1_prices.size() - N - 1 + threadsPerBlock - 1) / threadsPerBlock;
 
 
     parallelized_zscore_calculation<<<numBlocks, threadsPerBlock >>>(d_stock1_prices, d_stock2_prices, d_spread_sum, d_spread_sq_sum, d_check, N, stock1_prices.size());
