@@ -97,7 +97,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     cudaEventSynchronize(stop);
     float elapsedTime = 0;
     cudaEventElapsedTime(&elapsedTime, start, stop);
-    cout<<"calc_zz: "<<elapsedTime<<endl;
+    cout<<"pairs_trading_strategy_cuda: "<<elapsedTime<<endl;
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
 
