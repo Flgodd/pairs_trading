@@ -158,19 +158,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     vector<int> check(4, 0);
 
     size_t spread_size = stock1_prices.size();
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start);
-    fillArrays(stock1_prices, stock2_prices, spread_sum_f, spread_sq_sum_f, spread_size);
 
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    float elapsedTime = 0;
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    cout<<"calc_zz: "<<elapsedTime<<endl;
-    cudaEventDestroy(start);
-    cudaEventDestroy(stop);
+    fillArrays(stock1_prices, stock2_prices, spread_sum_f, spread_sq_sum_f, spread_size);
 
 
     //test(spread_sum_f);
@@ -183,9 +172,18 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     printResult("gpu bcao", spread_sq_sum_f[NN - 1], time_gpu_bcao2);
 
 
-
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start);
     calc_zz(stock1_prices,stock2_prices,spread_sum_f, spread_sq_sum_f,  check, spread_size);
-
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    float elapsedTime = 0;
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    cout<<"calc_zz: "<<elapsedTime<<endl;
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
 
     //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
