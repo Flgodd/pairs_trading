@@ -26,7 +26,6 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
     __syncthreads();*/
 
     for (int i = idx + N; i < size; i += stride) {
-        printf("i:%d\n", i);
         double sum = 0.0;
         double sq_sum = 0.0;
 
