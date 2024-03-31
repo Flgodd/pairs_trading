@@ -153,16 +153,15 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
     //1256 : 9866
     const int NN  = 1256;
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start);
     double spread_sum_f[1256];
     double spread_sq_sum_f[1256];
     vector<int> check(4, 0);
 
     size_t spread_size = stock1_prices.size();
-
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start);
     fillArrays(stock1_prices, stock2_prices, spread_sum_f, spread_sq_sum_f, spread_size);
 
     cudaEventRecord(stop);
