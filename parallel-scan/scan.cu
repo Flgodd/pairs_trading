@@ -192,9 +192,10 @@ __global__ void parallelized_zscore_calculation(
 
 
     int i = N + 1 + idx;
+    if(i >= size)return;
     //printf("i:%d\n", i);
-    const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;
-    const double stddev = std::sqrt((spread_sq_sum[i-1] - spread_sq_sum[i-N-1])/ N - mean * mean);
+    const double mean = (spread_sum[i] - spread_sum[i-N])/ N;
+    const double stddev = std::sqrt((spread_sq_sum[i] - spread_sq_sum[i-N])/ N - mean * mean);
     const double current_spread = stock1_prices[i] - stock2_prices[i];
     const double z_score = (current_spread - mean) / stddev;
 
