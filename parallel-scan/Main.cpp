@@ -39,7 +39,7 @@
 using namespace std;
 const int N = 8;
 void test(double in[]) {
-    int NN  = 9866;
+    int NN  = 1256;
 	bool canBeBlockscanned = NN <= 1024;
 
 	time_t t;
@@ -111,8 +111,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "Intel.csv";
-    string ms_file = "AMD.csv";
+    string gs_file = "GS.csv";
+    string ms_file = "MS.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -152,10 +152,10 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
     //1256 : 9866
-    vector<double> spread_sum(9866);
-    vector<double> spread_sq_sum(9866);
-    double spread_sum_f[9866];
-    double spread_sq_sum_f[9866];
+    vector<double> spread_sum(1256);
+    vector<double> spread_sq_sum(1256);
+    double spread_sum_f[1256];
+    double spread_sq_sum_f[1255];
     vector<int> check(4, 0);
 
 
@@ -164,7 +164,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         spread_sum_f[i] = current_spread;
         spread_sq_sum_f[i] = current_spread * current_spread;
     }
-    double last_element = spread_sum_f[9865];
+    double last_element = spread_sum_f[1255];
 
     long f_start_time = get_nanos();
     test(spread_sum_f);
@@ -173,7 +173,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     test(spread_sq_sum_f);
 
 
-    for (int i = 1; i < 9866; i++) {
+   /* for (int i = 1; i < 9866; i++) {
         spread_sum[i - 1] = spread_sum_f[i];
         spread_sq_sum[i - 1] = spread_sq_sum_f[i];
     }
@@ -182,23 +182,48 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     long start_time = get_nanos();
     calc_z(stock1_prices,stock2_prices,spread_sum, spread_sq_sum,  check);
     long end_time = get_nanos();
-    cout<<"calc_z: "<<end_time - start_time<<endl;
-    const double mean = (spread_sum[N-1])/ N;
-    const double stddev = std::sqrt((spread_sq_sum[N-1])/ N - mean * mean);
+    cout<<"calc_z: "<<end_time - start_time<<endl;*/
+
+   double for_final_calc_sum = last_element + spread_sum_f[1255];
+   double for_final_calc_sq_sum = (last_element * last_element) + spread_sq_sum_f[1255];
+
+    calc_z(stock1_prices,stock2_prices,spread_sum_f, spread_sq_sum_f,  check);
+
+
+
+    const double mean_f = (for_final_calc_sum)/ N;
+    const double stddev_f = std::sqrt((for_final_calc_sq_sum)/ N - mean * mean);
+    const double current_spread_f = stock1_prices[N] - stock2_prices[N];
+    const double z_score_f = (current_spread_f - mean_f) / stddev_f;
+
+
+    if (z_score_f > 1.0) {
+        //check[0]++;  // Long and Short
+    } else if (z_score_f < -1.0) {
+        //check[1]++;  // Short and Long
+    } else if (std::abs(z_score_f) < 0.8) {
+        //check[2]++;  // Close positions
+    } else {
+        //check[3]++;  // No signal
+    }
+
+
+    const double mean = (spread_sum_f[N-1+1])/ N;
+    const double stddev = std::sqrt((spread_sq_sum_f[N-1+1])/ N - mean * mean);
     const double current_spread = stock1_prices[N] - stock2_prices[N];
     const double z_score = (current_spread - mean) / stddev;
 
 
     if (z_score > 1.0) {
-        check[0]++;  // Long and Short
+        //check[0]++;  // Long and Short
     } else if (z_score < -1.0) {
-        check[1]++;  // Short and Long
+        //check[1]++;  // Short and Long
     } else if (std::abs(z_score) < 0.8) {
-        check[2]++;  // Close positions
+        //check[2]++;  // Close positions
     } else {
-        check[3]++;  // No signal
+        //check[3]++;  // No signal
     }
-    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 

@@ -16,3 +16,6 @@ __global__ void parallelized_zscore_calculation(
         int *check,
         size_t N,
         size_t size);
+void calc_zz(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices,
+             double spread_sum[], double spread_sq_sum[],
+             std::vector<int>& check);
