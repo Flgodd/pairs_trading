@@ -188,7 +188,8 @@ __global__ void parallelized_zscore_calculation(
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     //printf("idx:%d\n", idx);
     //if (idx >= size) return;
-    if (idx >= size - N - 1-6) return;
+    if(idx >= 1247)printf("idx:%d\n", idx);
+    if (idx >= size - N - 1) return;
 
 
     int i = N + 1 + idx;
