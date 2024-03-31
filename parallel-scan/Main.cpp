@@ -155,7 +155,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     vector<double> spread_sum(1256);
     vector<double> spread_sq_sum(1256);
     double spread_sum_f[1256];
-    double spread_sq_sum_f[1255];
+    double spread_sq_sum_f[1256];
     vector<int> check(4, 0);
 
 
@@ -186,8 +186,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
    double for_final_calc_sum = last_element + spread_sum_f[1255];
    double for_final_calc_sq_sum = (last_element * last_element) + spread_sq_sum_f[1255];
-
-    calc_zz(stock1_prices,stock2_prices,spread_sum_f, spread_sq_sum_f,  check);
+    size_t spread_size = stock1_prices.size();
+    calc_zz(stock1_prices,stock2_prices,spread_sum_f, spread_sq_sum_f,  check, spread_size);
 
 
 

@@ -250,15 +250,15 @@ void calc_z(const std::vector<double>& stock1_prices, const std::vector<double>&
 
 void calc_zz(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices,
             double spread_sum[], double spread_sq_sum[],
-            std::vector<int>& check) {
+            std::vector<int>& check, size_t spread_size) {
     const int N = 8;
     double *d_stock1_prices, *d_stock2_prices, *d_spread_sum, *d_spread_sq_sum;
     int *d_check;
 
     cudaMalloc((void**)&d_stock1_prices, stock1_prices.size() * sizeof(double));
     cudaMalloc((void**)&d_stock2_prices, stock2_prices.size() * sizeof(double));
-    cudaMalloc((void**)&d_spread_sum, spread_sum.size() * sizeof(double));
-    cudaMalloc((void**)&d_spread_sq_sum, spread_sq_sum.size() * sizeof(double));
+    cudaMalloc((void**)&d_spread_sum, spread_size * sizeof(double));
+    cudaMalloc((void**)&d_spread_sq_sum, spread_size * sizeof(double));
     cudaMalloc((void**)&d_check, check.size() * sizeof(int)); // Assuming 'check' has size 4
 
 // Data Transfer to the GPU
@@ -271,7 +271,6 @@ void calc_zz(const std::vector<double>& stock1_prices, const std::vector<double>
 
     int numBlocks = (stock1_prices.size() - N - 2 + threadsPerBlock - 1) / threadsPerBlock;  // Modified calculation
 
-    //printf("%d\n", numBlocks);
 
     parallelized_zscore_calculation<<<numBlocks, threadsPerBlock >>>(d_stock1_prices, d_stock2_prices, d_spread_sum, d_spread_sq_sum, d_check, N, stock1_prices.size());
 
