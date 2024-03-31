@@ -25,11 +25,11 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
 
     __syncthreads();
 
-    for (int i = idx; i < size - N; i += stride) {
+    for (int i = idx + N; i < size; i += stride) {
         double sum = 0.0;
         double sq_sum = 0.0;
 
-        int start = i;
+        int start = i - N;
 
         for (int j = 0; j < N; j++) {
             double val = spread[start + j];
@@ -39,7 +39,7 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
 
         double mean = sum / N;
         double stddev = sqrt(sq_sum / N - mean * mean);
-        double current_spread = spread[i + N];
+        double current_spread = spread[i];
         double z_score = (current_spread - mean) / stddev;
 
         if (z_score > 1.0) {
