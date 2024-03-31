@@ -57,23 +57,31 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
 void pairs_trading_strategy_cuda(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     int size = stock1_prices.size();
 
-    thrust::device_vector<double> d_stock1_prices = stock1_prices;
-    thrust::device_vector<double> d_stock2_prices = stock2_prices;
-    thrust::device_vector<int> d_check(4, 0);
+    double* d_stock1_prices;
+    double* d_stock2_prices;
+    int* d_check;
+
+    size_t pitch;
+    cudaMallocPitch(&d_stock1_prices, &pitch, size * sizeof(double), 1);
+    cudaMallocPitch(&d_stock2_prices, &pitch, size * sizeof(double), 1);
+    cudaMalloc(&d_check, 4 * sizeof(int));
+
+    cudaMemcpy2D(d_stock1_prices, pitch, stock1_prices.data(), size * sizeof(double), size * sizeof(double), 1, cudaMemcpyHostToDevice);
+    cudaMemcpy2D(d_stock2_prices, pitch, stock2_prices.data(), size * sizeof(double), size * sizeof(double), 1, cudaMemcpyHostToDevice);
+    cudaMemset(d_check, 0, 4 * sizeof(int));
 
     int grid_size = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-    pairs_trading_kernel<<<grid_size, BLOCK_SIZE>>>(
-            thrust::raw_pointer_cast(d_stock1_prices.data()),
-            thrust::raw_pointer_cast(d_stock2_prices.data()),
-            thrust::raw_pointer_cast(d_check.data()),
-            size
-    );
+    pairs_trading_kernel<<<grid_size, BLOCK_SIZE>>>(d_stock1_prices, d_stock2_prices, d_check, size);
 
     cudaDeviceSynchronize();
 
     std::vector<int> check(4);
-    thrust::copy(d_check.begin(), d_check.end(), check.begin());
+    cudaMemcpy(check.data(), d_check, 4 * sizeof(int), cudaMemcpyDeviceToHost);
 
     std::cout << check[0] << ":" << check[1] << ":" << check[2] << ":" << check[3] << std::endl;
+
+    cudaFree(d_stock1_prices);
+    cudaFree(d_stock2_prices);
+    cudaFree(d_check);
 }
