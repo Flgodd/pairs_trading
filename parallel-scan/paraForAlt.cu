@@ -11,7 +11,7 @@
 
 const int N = 8;
 const int BLOCK_SIZE = 256;
-const double EPSILON = 1e-8;
+
 
 __global__ void pairs_trading_kernel(const double* stock1_prices, const double* stock2_prices, int* check, int size) {
     __shared__ double spread[1256];
@@ -25,11 +25,11 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
 
     __syncthreads();
 
-    for (int i = idx + N; i < size; i += stride) {
+    for (int i = idx; i < size - N; i += stride) {
         double sum = 0.0;
         double sq_sum = 0.0;
 
-        int start = i - N;
+        int start = i;
 
         for (int j = 0; j < N; j++) {
             double val = spread[start + j];
@@ -38,16 +38,15 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
         }
 
         double mean = sum / N;
-        double variance = sq_sum / N - mean * mean;
-        double stddev = sqrt(variance);
-        double current_spread = stock1_prices[i] - stock2_prices[i];
+        double stddev = sqrt(sq_sum / N - mean * mean);
+        double current_spread = spread[i + N];
         double z_score = (current_spread - mean) / stddev;
 
-        if (z_score > 1.0 + EPSILON) {
+        if (z_score > 1.0) {
             atomicAdd(&check[0], 1);  // Long and Short
-        } else if (z_score < -1.0 - EPSILON) {
+        } else if (z_score < -1.0) {
             atomicAdd(&check[1], 1);  // Short and Long
-        } else if (fabs(z_score) < 0.8 + EPSILON) {
+        } else if (fabs(z_score) < 0.8) {
             atomicAdd(&check[2], 1);  // Close positions
         } else {
             atomicAdd(&check[3], 1);  // No signal
