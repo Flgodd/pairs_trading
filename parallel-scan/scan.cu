@@ -264,8 +264,8 @@ void calc_zz(const std::vector<double>& stock1_prices, const std::vector<double>
 // Data Transfer to the GPU
     cudaMemcpy(d_stock1_prices, stock1_prices.data(), stock1_prices.size() * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(d_stock2_prices, stock2_prices.data(), stock2_prices.size() * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_spread_sum, spread_sum.data(), spread_sum.size() * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_spread_sq_sum, spread_sq_sum.data(), spread_sq_sum.size() * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_spread_sum, spread_sum, spread_size * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_spread_sq_sum, spread_sq_sum, spread_size * sizeof(double), cudaMemcpyHostToDevice);
 
     int threadsPerBlock = 512;
 
