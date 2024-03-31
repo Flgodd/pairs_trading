@@ -3,16 +3,25 @@
 #include <thrust/device_vector.h>
 #include <cmath>
 
+#include <stdlib.h>
+#include <vector>
+#include <stdlib.h>
+#include <stdio.h>
+
+
 const int N = 1256;
 const int BLOCK_SIZE = 256;
 
+const int N = 8;
+const int BLOCK_SIZE = 256;
+
 __global__ void pairs_trading_kernel(const double* stock1_prices, const double* stock2_prices, int* check, int size) {
-    __shared__ double spread[N];
+    __shared__ double spread[1256];
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int stride = blockDim.x * gridDim.x;
 
-    for (int i = idx; i < N; i += stride) {
+    for (int i = idx; i < 1256; i += stride) {
         spread[i] = stock1_prices[i] - stock2_prices[i];
     }
 
@@ -22,16 +31,18 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
         double sum = 0.0;
         double sq_sum = 0.0;
 
-#pragma unroll
-        for (int j = 0; j < 8; ++j) {
-            double val = spread[i - N + j];
-            sum += val;
-            sq_sum += val * val;
-        }
+        int start = i - N;
+
+        double4 vals1 = reinterpret_cast<const double4*>(spread + start)[0];
+        double4 vals2 = reinterpret_cast<const double4*>(spread + start + 4)[0];
+
+        sum = vals1.x + vals1.y + vals1.z + vals1.w + vals2.x + vals2.y + vals2.z + vals2.w;
+        sq_sum = vals1.x * vals1.x + vals1.y * vals1.y + vals1.z * vals1.z + vals1.w * vals1.w +
+                 vals2.x * vals2.x + vals2.y * vals2.y + vals2.z * vals2.z + vals2.w * vals2.w;
 
         double mean = sum / N;
         double stddev = sqrt(sq_sum / N - mean * mean);
-        double current_spread = stock1_prices[i] - stock2_prices[i];
+        double current_spread = spread[i];
         double z_score = (current_spread - mean) / stddev;
 
         if (z_score > 1.0) {
