@@ -7,6 +7,7 @@
 #include <vector>
 #include <stdlib.h>
 #include <stdio.h>
+#include <omp.h>
 
 
 const int N = 8;
@@ -31,7 +32,7 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
 
         int start = i - N;
 
-        double2 simd_sum = make_double2(0.0, 0.0);
+        /*double2 simd_sum = make_double2(0.0, 0.0);
         double2 simd_sq_sum = make_double2(0.0, 0.0);
 
         for (int j = 0; j < N; j += 2) {
@@ -47,7 +48,13 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
         }
 
         sum = simd_sum.x + simd_sum.y;
-        sq_sum = simd_sq_sum.x + simd_sq_sum.y;
+        sq_sum = simd_sq_sum.x + simd_sq_sum.y;*/
+#pragma omp simd
+        for (int j = 0; j < N; j++) {
+            double val = stock1_prices[start + j] - stock2_prices[start+j];
+            sum += val;
+            sq_sum += val * val;
+        }
 
         double mean = sum / N;
         double stddev = sqrt(sq_sum / N - mean * mean);
