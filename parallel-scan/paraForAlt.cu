@@ -19,11 +19,11 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int stride = blockDim.x * gridDim.x;
 
-    for (int i = idx; i < 1256; i += stride) {
+    /*for (int i = idx; i < 1256; i += stride) {
         spread[i] = stock1_prices[i] - stock2_prices[i];
     }
 
-    __syncthreads();
+    __syncthreads();*/
 
     for (int i = idx + N; i < size; i += stride) {
         printf("i:%d\n", i);
@@ -33,14 +33,14 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
         int start = i - N;
 
         for (int j = 0; j < N; j++) {
-            double val = spread[start + j];
+            double val = stock1_prices[start + j] - stock2_prices[start+j];
             sum += val;
             sq_sum += val * val;
         }
 
         double mean = sum / N;
         double stddev = sqrt(sq_sum / N - mean * mean);
-        double current_spread = spread[i];
+        double current_spread = stock1_prices[i] - stock2_prices[i];
         double z_score = (current_spread - mean) / stddev;
 
         if (z_score > 1.0) {
