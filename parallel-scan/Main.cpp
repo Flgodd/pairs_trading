@@ -152,8 +152,7 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
     //1256 : 9866
-    //vector<double> spread_sum(1256);
-    //vector<double> spread_sq_sum(1256);
+
     double spread_sum_f[1256];
     double spread_sq_sum_f[1256];
     vector<int> check(4, 0);
@@ -168,8 +167,20 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     cout<<"test: "<<f_end_time - f_start_time<<endl;
     test(spread_sq_sum_f);
 
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start);
+
     calc_zz(stock1_prices,stock2_prices,spread_sum_f, spread_sq_sum_f,  check, spread_size);
 
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    float elapsedTime = 0;
+    cudaEventElapsedTime(&elapsedTime, start, stop);
+    cout<<"calc_zz: "<<elapsedTime<<endl;
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
     //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
