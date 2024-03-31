@@ -188,12 +188,12 @@ __global__ void parallelized_zscore_calculation(
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     //printf("idx:%d\n", idx);
     //if (idx >= size) return;
-    if(idx >= 1247)printf("idx:%d\n", idx);
+    //if(idx >= 1247)printf("idx:%d\n", idx);
     if (idx >= size - N - 1) return;
-
+    if(idx >= 1247)printf("idx:%d\n", idx);
 
     int i = N + 1 + idx;
-    printf("i:%d\n", i);
+    //printf("i:%d\n", i);
     if(i >= size)return;
     //printf("i:%d\n", i);
     const double mean = (spread_sum[i] - spread_sum[i-N])/ N;
