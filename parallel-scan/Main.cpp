@@ -152,6 +152,10 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
     //1256 : 9866
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start);
     const int NN  = 1256;
     double spread_sum_f[1256];
     double spread_sq_sum_f[1256];
@@ -171,11 +175,6 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     float time_gpu_bcao2 = scan(outGPU_bcao, spread_sq_sum_f, NN, true);
     printResult("gpu bcao", spread_sq_sum_f[NN - 1], time_gpu_bcao2);
 
-
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start);
     calc_zz(stock1_prices,stock2_prices,spread_sum_f, spread_sq_sum_f,  check, spread_size);
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
