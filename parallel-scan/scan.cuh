@@ -27,3 +27,10 @@ __global__ void parallelized_zscore_calculation1(
 void calc_zz(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices,
              double spread_sum[], double spread_sq_sum[],
              std::vector<int>& check, size_t spread_size);
+__global__ void para_fill(const double *stock1_prices,
+                          const double *stock2_prices,
+                          double *spread_sum,
+                          double *spread_sq_sum,
+                          size_t size);
+void fillArrays(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices,
+                double spread_sum[], double spread_sq_sum[], size_t spread_size);
