@@ -192,6 +192,7 @@ __global__ void parallelized_zscore_calculation(
 
 
     int i = N + 1 + idx;
+    printf("i:%d\n", i);
     if(i >= size)return;
     //printf("i:%d\n", i);
     const double mean = (spread_sum[i] - spread_sum[i-N])/ N;
