@@ -9,9 +9,6 @@
 #include <stdio.h>
 
 
-const int N = 1256;
-const int BLOCK_SIZE = 256;
-
 const int N = 8;
 const int BLOCK_SIZE = 256;
 
