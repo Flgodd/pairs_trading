@@ -191,9 +191,9 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
 
 
-    const double mean_f = (for_final_calc_sum)/ N;
-    const double stddev_f = std::sqrt((for_final_calc_sq_sum)/ N - mean_f * mean_f);
-    const double current_spread_f = stock1_prices[N] - stock2_prices[N];
+    const double mean_f = (for_final_calc_sum - spread_sum_f[1256 -N -1])/ N;
+    const double stddev_f = std::sqrt((for_final_calc_sq_sum - spread_sq_sum_f[1256 - N -1])/ N - mean_f * mean_f);
+    const double current_spread_f = stock1_prices.back() - stock2_prices.back();
     const double z_score_f = (current_spread_f - mean_f) / stddev_f;
 
 

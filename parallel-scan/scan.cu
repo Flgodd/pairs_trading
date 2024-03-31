@@ -269,7 +269,7 @@ void calc_zz(const std::vector<double>& stock1_prices, const std::vector<double>
 
     int threadsPerBlock = 512;
 
-    int numBlocks = (stock1_prices.size() - N - 2 + threadsPerBlock - 1) / threadsPerBlock;  // Modified calculation
+    int numBlocks = (stock1_prices.size() - N - 2 + threadsPerBlock - 1) / threadsPerBlock;
 
 
     parallelized_zscore_calculation<<<numBlocks, threadsPerBlock >>>(d_stock1_prices, d_stock2_prices, d_spread_sum, d_spread_sq_sum, d_check, N, stock1_prices.size());
