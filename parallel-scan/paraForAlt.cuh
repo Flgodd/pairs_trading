@@ -1,0 +1,2 @@
+__global__ void pairs_trading_kernel(const double* stock1_prices, const double* stock2_prices, int* check, int size);
+void pairs_trading_strategy_cuda(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices);

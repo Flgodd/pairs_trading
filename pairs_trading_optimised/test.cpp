@@ -1,62 +1,44 @@
-#include <array>
-#include <chrono>
-#include <cstdlib>
 #include <experimental/simd>
 #include <iostream>
-#include <random>
+#include <string_view>
+namespace stdx = std::experimental;
 
-using std::experimental::fixed_size_simd;
-using Vec3D_v = fixed_size_simd<float, 3>;
-
-using Vec3D = std::array<float, 3>;
-float scalar_product (const std::array<float, 3> &a, const std::array<float, 3> &b) {
-    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+void println(std::string_view name, auto const& a)
+{
+    std::cout << name << ": ";
+    for (std::size_t i{}; i != std::size(a); ++i)
+        std::cout << a[i] << ' ';
+    std::cout << '\n';
 }
 
-int main () {
-    constexpr std::size_t VECREG_SIZE = fixed_size_simd<float, 3>::size ();
-    std::array<Vec3D, VECREG_SIZE * 1000> arr;
-    std::array<Vec3D_v, VECREG_SIZE * 1000> arr_v;
-    std::random_device rd;
-    std::mt19937 generator (rd ());
-    std::uniform_real_distribution<float> distribution (0.f, 1.f);
+template<class A>
+stdx::simd<int, A> my_abs(stdx::simd<int, A> x)
+{
+    where(x < 0, x) = -x;
+    return x;
+}
 
-    for (std::size_t i = 0; i < arr.size (); ++i) {
-        arr[i] = {distribution (generator), distribution (generator), distribution (generator) };
+int main()
+{
+    const stdx::native_simd<int> a = 1;
+    println("a", a);
 
-        for (int j = 0; j < 3; ++j)
-            arr_v[i][j] = arr[i][j];
-    }
+    const stdx::native_simd<int> b([](int i) { return i - 2; });
+    println("b", b);
 
-    Vec3D_v result_v;
+    const auto c = a + b;
+    println("c", c);
 
-    for (int iter = 0; iter < 3; ++iter) {
+    const auto d = my_abs(c);
+    println("d", d);
 
-        for (int j = 0; j < 3; ++j)
-            result_v[j] = 0.f;
+    const auto e = d * d;
+    println("e", e);
 
-        auto start = std::chrono::high_resolution_clock::now ();
+    const auto inner_product = stdx::reduce(e);
+    std::cout << "inner product: " << inner_product << '\n';
 
-        for (std::size_t i = 1; i < arr.size (); ++i) {
-            result_v += arr_v[i - 1] * arr_v[i];
-        }
-
-        float result = std::experimental::reduce (result_v);
-        auto end = std::chrono::high_resolution_clock::now ();
-        auto elapsed = end - start;
-        std::cout << "VC: " << elapsed.count () << " (result: " << result << ")" << std::endl;
-
-        result = 0;
-        start = std::chrono::high_resolution_clock::now ();
-
-        for (std::size_t i = 1; i < arr.size (); ++i) {
-            result += scalar_product (arr[i - 1], arr[i]);
-        }
-
-        end = std::chrono::high_resolution_clock::now ();
-        elapsed = end - start;
-        std::cout << "notVC: " << elapsed.count () << " (result: " << result << ")" << std::endl;
-    }
-
-    return EXIT_SUCCESS;
+    const stdx::fixed_size_simd<long double, 16> x([](int i) { return i; });
+    println("x", x);
+    println("cos²(x) + sin²(x)", stdx::pow(stdx::cos(x), 2) + stdx::pow(stdx::sin(x), 2));
 }
