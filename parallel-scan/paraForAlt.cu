@@ -12,6 +12,9 @@
 const int N = 8;
 const int BLOCK_SIZE = 256;
 
+const int N = 8;
+const int BLOCK_SIZE = 256;
+
 __global__ void pairs_trading_kernel(const double* stock1_prices, const double* stock2_prices, int* check, int size) {
     __shared__ double spread[1256];
 
@@ -20,7 +23,6 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
 
     for (int i = idx; i < 1256; i += stride) {
         spread[i] = stock1_prices[i] - stock2_prices[i];
-        printf("spread:%f\n", spread[i]);
     }
 
     __syncthreads();
@@ -31,16 +33,15 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
 
         int start = i - N;
 
-        double4 vals1 = reinterpret_cast<const double4*>(spread + start)[0];
-        double4 vals2 = reinterpret_cast<const double4*>(spread + start + 4)[0];
-
-        sum = vals1.x + vals1.y + vals1.z + vals1.w + vals2.x + vals2.y + vals2.z + vals2.w;
-        sq_sum = vals1.x * vals1.x + vals1.y * vals1.y + vals1.z * vals1.z + vals1.w * vals1.w +
-                 vals2.x * vals2.x + vals2.y * vals2.y + vals2.z * vals2.z + vals2.w * vals2.w;
+        for (int j = 0; j < N; j++) {
+            double val = spread[start + j];
+            sum += val;
+            sq_sum += val * val;
+        }
 
         double mean = sum / N;
         double stddev = sqrt(sq_sum / N - mean * mean);
-        double current_spread = spread[i];
+        double current_spread = stock1_prices[i] - stock2_prices[i];
         double z_score = (current_spread - mean) / stddev;
 
         if (z_score > 1.0) {
@@ -62,13 +63,12 @@ void pairs_trading_strategy_cuda(const std::vector<double>& stock1_prices, const
     double* d_stock2_prices;
     int* d_check;
 
-    size_t pitch;
-    cudaMallocPitch(&d_stock1_prices, &pitch, size * sizeof(double), 1);
-    cudaMallocPitch(&d_stock2_prices, &pitch, size * sizeof(double), 1);
+    cudaMalloc(&d_stock1_prices, size * sizeof(double));
+    cudaMalloc(&d_stock2_prices, size * sizeof(double));
     cudaMalloc(&d_check, 4 * sizeof(int));
 
-    cudaMemcpy2D(d_stock1_prices, pitch, stock1_prices.data(), size * sizeof(double), size * sizeof(double), 1, cudaMemcpyHostToDevice);
-    cudaMemcpy2D(d_stock2_prices, pitch, stock2_prices.data(), size * sizeof(double), size * sizeof(double), 1, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_stock1_prices, stock1_prices.data(), size * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_stock2_prices, stock2_prices.data(), size * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemset(d_check, 0, 4 * sizeof(int));
 
     int grid_size = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
