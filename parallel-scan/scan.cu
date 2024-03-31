@@ -329,8 +329,9 @@ __global__ void para_fill(const double *stock1_prices,
                           double *spread_sum,
                           double *spread_sq_sum,
                           size_t size){
-    if(idx >= size)return;
+
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if(idx >= size)return;
     const double current_spread = stock1_prices[idx] - stock2_prices[idx];
     spread_sum[idx] = current_spread;
     spread_sq_sum[idx] = current_spread * current_spread;
