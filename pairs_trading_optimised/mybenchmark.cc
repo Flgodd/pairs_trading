@@ -124,14 +124,18 @@ void recursive_blelloch(vector<double>& x, int depth) {
     vector<double> newX(div);
 
 #pragma omp parallel for
-    for (int i = 0; i < div; i++) {
-        int start = 2 * numThreads * i;
-        int end = std::min(start + 2 * numThreads, static_cast<int>(x.size()));
-        vector<double> temp(x.begin() + start, x.begin() + end);
-        parallelUpSweep(temp);
-        parallelDownSweep(temp);
-        toHoldValues[i] = temp;
-        newX[i] = temp.back() + x[end - 1];
+    {
+#pragma omp single
+        std::cout << "Number of threads in use = " << omp_get_num_threads() << std::endl;
+        for (int i = 0; i < div; i++) {
+            int start = 2 * numThreads * i;
+            int end = std::min(start + 2 * numThreads, static_cast<int>(x.size()));
+            vector<double> temp(x.begin() + start, x.begin() + end);
+            parallelUpSweep(temp);
+            parallelDownSweep(temp);
+            toHoldValues[i] = temp;
+            newX[i] = temp.back() + x[end - 1];
+        }
     }
 
     double bigg = newX.back();
