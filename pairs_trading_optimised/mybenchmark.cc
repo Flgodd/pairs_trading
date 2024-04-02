@@ -172,8 +172,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     if(rem != 0 || check_depth > depth)depth++;
 
 
-    recurive_blelloch(spread_sum, depth);
-    recurive_blelloch(spread_sq_sum, depth);
+    recursive_blelloch(spread_sum, depth);
+    recursive_blelloch(spread_sq_sum, depth);
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
 
