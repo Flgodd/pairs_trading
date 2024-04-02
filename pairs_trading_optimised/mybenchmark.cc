@@ -103,7 +103,7 @@ void parallelDownSweep(vector<double>& x) {
     }
 }
 
-void recurive_blelloch(vector<double>& x, int depth) {
+void recursive_blelloch(vector<double>& x, int depth) {
     int n = x.size();
     int numThreads = NUM_THREADS;
 
