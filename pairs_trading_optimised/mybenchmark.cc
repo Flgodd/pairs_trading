@@ -25,7 +25,7 @@
 #include <omp.h>
 
 
-#define NUM_THREADS 256
+#define NUM_THREADS omp_get_max_threads()
 
 
 using namespace std;
@@ -176,8 +176,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     if(rem != 0 || check_depth > depth)depth++;
 
-
-    vector<double> x = {1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,
+    cout<<NUM_THREADS<<endl;
+   /* vector<double> x = {1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,
             1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3};
 
     int xdepth = std::log(x.size())/log(NUM_THREADS*2);
@@ -188,7 +188,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     recursive_blelloch(x, xdepth);
     cout<<x[0]<<":"<<x[1]<<":"<<x[2]<<":"<<x[3]<<":"<<x[4]<<":"<<x[5]<<":"<<x[6]<<":"<<x[7]<<":"<<
             x[8]<<":"<<x[9]<<":"<<x[10]<<":"<<x[11]<<":"<<x[12]<<":"<<x[13]<<":"<<x[14]
-            <<x[15]<<":"<<x[16]<<":"<<x[17]<<":"<<x[18]<<":"<<x[19]<<":"<<x[20]<<":"<<x[138]<<endl;
+            <<x[15]<<":"<<x[16]<<":"<<x[17]<<":"<<x[18]<<":"<<x[19]<<":"<<x[20]<<":"<<x[138]<<endl;*/
 
     recursive_blelloch(spread_sum, depth);
     recursive_blelloch(spread_sq_sum, depth);
