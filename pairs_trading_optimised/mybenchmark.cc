@@ -163,7 +163,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     vector<double> spread_sq_sum(1256);
     vector<int> check(4, 0);
 
-
+#pragma omp parallel for
     for(int i = 0; i<stock1_prices.size(); i++){
         const double current_spread = stock1_prices[i] - stock2_prices[i];
         spread_sum[i] = current_spread;
@@ -176,23 +176,10 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     if(rem != 0 || check_depth > depth)depth++;
 
-    cout<<NUM_THREADS<<endl;
-   /* vector<double> x = {1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,
-            1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8,1, 2, 3};
-
-    int xdepth = std::log(x.size())/log(NUM_THREADS*2);
-    float  xcheck_depth = std::log(x.size())/log(NUM_THREADS*2);
-    int xrem = (x.size()%(NUM_THREADS*2));
-
-    if(xrem != 0 || xcheck_depth > xdepth)xdepth++;
-    recursive_blelloch(x, xdepth);
-    cout<<x[0]<<":"<<x[1]<<":"<<x[2]<<":"<<x[3]<<":"<<x[4]<<":"<<x[5]<<":"<<x[6]<<":"<<x[7]<<":"<<
-            x[8]<<":"<<x[9]<<":"<<x[10]<<":"<<x[11]<<":"<<x[12]<<":"<<x[13]<<":"<<x[14]
-            <<x[15]<<":"<<x[16]<<":"<<x[17]<<":"<<x[18]<<":"<<x[19]<<":"<<x[20]<<":"<<x[138]<<endl;*/
 
     recursive_blelloch(spread_sum, depth);
     recursive_blelloch(spread_sq_sum, depth);
-
+#pragma omp parallel for
     for (size_t i = N; i < stock1_prices.size(); ++i) {
 
         const double mean = (spread_sum[i] - spread_sum[i-N])/ N;
@@ -202,17 +189,17 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
 
         if (z_score > 1.0) {
-            check[0]++;  // Long and Short
+            //check[0]++;  // Long and Short
         } else if (z_score < -1.0) {
-            check[1]++;  // Short and Long
+            //check[1]++;  // Short and Long
         } else if (std::abs(z_score) < 0.8) {
-            check[2]++;  // Close positions
+            //check[2]++;  // Close positions
         } else {
-            check[3]++;  // No signal
+            //check[3]++;  // No signal
         }
 
     }
-    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
     //std::cout << "Maximum number of threads = " << omp_get_max_threads() << std::endl;
 
