@@ -16,11 +16,12 @@
 #include <cmath>
 #include <iostream>
 #include <array>
-#include "experimental/simd"
+//#include "experimental/simd"
+#include <experimental/simd>
 //#include <experimental/execution_policy>
 #include <chrono>
 //#include <experimental/numeric>
-#include <arm_neon.h>
+//#include <arm_neon.h>
 #include <array>
 
 
