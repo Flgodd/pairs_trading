@@ -1,4 +1,3 @@
-//RUN ON P3 Isambard
 #include <benchmark/benchmark.h>
 #include <vector>
 #include <fstream>
@@ -6,7 +5,7 @@
 #include <string>
 #include <numeric>
 #include <cmath>
-//#include <immintrin.h>
+//#include <immintrin.h>'
 #include <iostream>
 #include <vector>
 #include <deque>
@@ -17,19 +16,22 @@
 #include <cmath>
 #include <iostream>
 #include <array>
-//#include "experimental/simd"
 #include <experimental/simd>
 //#include <experimental/execution_policy>
 #include <chrono>
 //#include <experimental/numeric>
-//#include <arm_neon.h>
+#include <arm_neon.h>
 #include <array>
+#include <thread>
+#include "omp.h"
 
+
+#define NUM_THREADS 8
 
 
 using namespace std;
 
-namespace stdx = std::experimental;
+namespace simd = std::experimental;
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -74,58 +76,127 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
+void parallelUpSweep(vector<double>& x) {
+    int n = x.size();
+    int maxDepth = std::log2(n);
+
+    for (int d = 0; d < maxDepth; ++d) {
+        int stride = std::pow(2, d);
+#pragma omp parallel for
+        for (int k = stride - 1; k < n; k += 2 * stride) {
+            x[k + stride] += x[k];
+        }
+    }
+}
+
+void parallelDownSweep(vector<double>& x) {
+    int n = x.size();
+    x[n - 1] = 0;
+    int maxDepth = std::log2(n);
+
+    for (int d = maxDepth - 1; d >= 0; --d) {
+        int stride = std::pow(2, d);
+#pragma omp parallel for
+        for (int k = stride - 1; k < n; k += 2 * stride) {
+            double tmp = x[k];
+            x[k] = x[k + stride];
+            x[k + stride] += tmp;
+        }
+    }
+}
+
+void recursive_blelloch(vector<double>& x, int depth) {
+    int n = x.size();
+    int numThreads = NUM_THREADS;
+
+    if (depth == 0 || n <= 2 * numThreads) {
+        parallelUpSweep(x);
+        parallelDownSweep(x);
+        return;
+    }
+
+    int div = n / (2 * numThreads);
+    int rem = n % (2 * numThreads);
+    if (rem != 0) {
+        x.resize(n + (2 * numThreads - rem), 0);
+        div++;
+    }
+
+    vector<vector<double>> toHoldValues(div);
+    vector<double> newX(div);
+
+#pragma omp parallel for
+    for (int i = 0; i < div; i++) {
+        int start = 2 * numThreads * i;
+        int end = std::min(start + 2 * numThreads, static_cast<int>(x.size()));
+        vector<double> temp(x.begin() + start, x.begin() + end);
+        parallelUpSweep(temp);
+        parallelDownSweep(temp);
+        toHoldValues[i] = temp;
+        newX[i] = temp.back() + x[end - 1];
+    }
+
+    double bigg = newX.back();
+    recursive_blelloch(newX, depth - 1);
+
+    x.clear();
+    newX.push_back(newX.back() + bigg);
+
+    for (int i = 0; i < div; i++) {
+        for (int j = 0; j < toHoldValues[i].size(); j++) {
+            toHoldValues[i][j] += newX[i];
+        }
+        x.insert(x.end(), toHoldValues[i].begin(), toHoldValues[i].end());
+    }
+}
+
+
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
-    static_assert(N % 2 == 0, "N should be a multiple of 2 for SIMD operations");
+    static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<double, N> spread;
-    size_t spread_index = 0;
+    vector<double> spread_sum(1256);
+    vector<double> spread_sq_sum(1256);
+    vector<int> check(4, 0);
 
-    for(size_t i = 0; i < N; ++i) {
-        spread[i] = stock1_prices[i] - stock2_prices[i];
+
+    for(int i = 0; i<stock1_prices.size(); i++){
+        const double current_spread = stock1_prices[i] - stock2_prices[i];
+        spread_sum[i] = current_spread;
+        spread_sq_sum[i] = current_spread*current_spread;
     }
 
-    std::vector<int> check(4, 0);
-    for(size_t i = N; i < stock1_prices.size(); ++i) {
+    int depth = std::log(spread_sum.size())/log(NUM_THREADS*2);
+    float  check_depth = std::log(spread_sum.size())/log(NUM_THREADS*2);
+    int rem = (spread_sum.size()%(NUM_THREADS*2));
 
-        using Vd = stdx::simd<double>; // Use the default SIMD ABI for doubles
-        Vd sum_vec(0.0), sq_sum_vec(0.0);
+    if(rem != 0 || check_depth > depth)depth++;
 
-        for(size_t j = 0; j < N; j += Vd::size()) {
-            Vd spread_vec(&spread[j], stdx::element_aligned_tag{}); // Load spread values into a SIMD vector
-            sum_vec += spread_vec;
-            sq_sum_vec += spread_vec * spread_vec;
-        }
 
-        double final_sum = stdx::reduce(sum_vec);
-        double final_sq_sum = stdx::reduce(sq_sum_vec);
+    recurive_blelloch(spread_sum, depth);
+    recurive_blelloch(spread_sq_sum, depth);
 
-        double mean = final_sum / N;
-        double stddev = std::sqrt(final_sq_sum / N - mean * mean);
+    for (size_t i = N; i < stock1_prices.size(); ++i) {
 
-        double current_spread = stock1_prices[i] - stock2_prices[i];
-        double z_score = (current_spread - mean) / stddev;
+        const double mean = (spread_sum[i] - spread_sum[i-N])/ N;
+        const double stddev = std::sqrt((spread_sq_sum[i] - spread_sq_sum[i-N])/ N - mean * mean);
+        const double current_spread = stock1_prices[i] - stock2_prices[i];
+        const double z_score = (current_spread - mean) / stddev;
 
-        spread[spread_index] = current_spread;
 
-        if(z_score > 1.0) {
-            // Long and Short
-            //check[0]++;
-        } else if(z_score < -1.0) {
-            // Short and Long
-            //check[1]++;
+        if (z_score > 1.0) {
+            check[0]++;  // Long and Short
+        } else if (z_score < -1.0) {
+            check[1]++;  // Short and Long
         } else if (std::abs(z_score) < 0.8) {
-            // Close positions
-            //check[2]++;
+            check[2]++;  // Close positions
         } else {
-            // No signal
-            //check[3]++;
+            check[3]++;  // No signal
         }
 
-        spread_index = (spread_index + 1) % N;
     }
-    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
