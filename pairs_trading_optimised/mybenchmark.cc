@@ -78,21 +78,16 @@ void parallelUpSweep(std::vector<double>& x) {
     const int n = x.size();
     const int maxDepth = std::log2(n);
 
-#pragma omp parallel
-    {
-        for (int d = 0; d < maxDepth; ++d) {
-            const int powerOfTwoDPlus1 = 1 << (d + 1);
+    for (int d = 0; d < maxDepth; ++d) {
+        const int powerOfTwoDPlus1 = 1 << (d + 1);
 
-#pragma omp for
-            for (int k = 0; k < n; k += powerOfTwoDPlus1) {
-                const int idx1 = k + (1 << d) - 1;
-                const int idx2 = k + powerOfTwoDPlus1 - 1;
-                if (idx2 < n) {
-                    x[idx2] += x[idx1];
-                }
+#pragma omp parallel for
+        for (int k = 0; k < n; k += powerOfTwoDPlus1) {
+            const int idx1 = k + (1 << d) - 1;
+            const int idx2 = k + powerOfTwoDPlus1 - 1;
+            if (idx2 < n) {
+                x[idx2] += x[idx1];
             }
-
-#pragma omp barrier
         }
     }
 }
@@ -102,23 +97,18 @@ void parallelDownSweep(std::vector<double>& x) {
     x[n - 1] = 0; // Initialize the last element to 0
     const int maxDepth = std::log2(n);
 
-#pragma omp parallel
-    {
-        for (int d = maxDepth - 1; d >= 0; --d) {
-            const int powerOfTwoDPlus1 = 1 << (d + 1);
+    for (int d = maxDepth - 1; d >= 0; --d) {
+        const int powerOfTwoDPlus1 = 1 << (d + 1);
 
-#pragma omp for
-            for (int k = 0; k < n; k += powerOfTwoDPlus1) {
-                const int idx1 = k + (1 << d) - 1;
-                const int idx2 = k + powerOfTwoDPlus1 - 1;
-                if (idx2 < n) {
-                    const double tmp = x[idx1];
-                    x[idx1] = x[idx2];
-                    x[idx2] += tmp;
-                }
+#pragma omp parallel for
+        for (int k = 0; k < n; k += powerOfTwoDPlus1) {
+            const int idx1 = k + (1 << d) - 1;
+            const int idx2 = k + powerOfTwoDPlus1 - 1;
+            if (idx2 < n) {
+                const double tmp = x[idx1];
+                x[idx1] = x[idx2];
+                x[idx2] += tmp;
             }
-
-#pragma omp barrier
         }
     }
 }
@@ -149,16 +139,16 @@ void recursive_blelloch(std::vector<double>& x, int depth) {
 
     recursive_blelloch(newX, depth - 1);
 
-    x.clear();
-    newX.push_back(newX.back());
-
 #pragma omp parallel for
     for (int i = 0; i < div; ++i) {
-        for (double& val : toHoldValues[i]) {
-            val += newX[i];
+        for (int j = 0; j < n; ++j) {
+            toHoldValues[i][j] += newX[i];
         }
-#pragma omp critical
-        x.insert(x.end(), toHoldValues[i].begin(), toHoldValues[i].end());
+    }
+
+    x.clear();
+    for (const auto& subvec : toHoldValues) {
+        x.insert(x.end(), subvec.begin(), subvec.end());
     }
     x.resize(size);
 }
