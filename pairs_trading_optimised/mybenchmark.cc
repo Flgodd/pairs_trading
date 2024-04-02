@@ -92,7 +92,6 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         using Vd = stdx::simd<double>; // Use the default SIMD ABI for doubles
         Vd sum_vec(0.0), sq_sum_vec(0.0);
 
-        cout<<Vd::size()<<endl;
         for(size_t j = 0; j < N; j += Vd::size()) {
             Vd spread_vec(&spread[j], stdx::element_aligned_tag{}); // Load spread values into a SIMD vector
             sum_vec += spread_vec;
