@@ -124,7 +124,6 @@ void recursive_blelloch(vector<double>& x, int depth) {
     vector<double> newX(div);
 
 #pragma omp parallel for
-
         for (int i = 0; i < div; i++) {
             #pragma omp single
             std::cout << "Number of threads in use = " << omp_get_num_threads() << std::endl;
