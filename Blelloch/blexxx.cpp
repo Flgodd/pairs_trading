@@ -16,7 +16,6 @@
 #include <cmath>
 #include <iostream>
 #include <array>
-#include <experimental/simd>
 //#include <experimental/execution_policy>
 #include <chrono>
 //#include <experimental/numeric>
@@ -31,7 +30,6 @@
 
 using namespace std;
 
-namespace simd = std::experimental;
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -142,10 +140,16 @@ void recursive_blelloch(vector<double>& x, int depth) {
     x.clear();
     newX.push_back(newX.back() + bigg);
 
+#pragma omp parallel for
     for (int i = 0; i < div; i++) {
+        double nx = newX[i];
         for (int j = 0; j < toHoldValues[i].size(); j++) {
-            toHoldValues[i][j] += newX[i];
+            toHoldValues[i][j] += nx;
         }
+    }
+
+    x.reserve(x.size() + n);
+    for (int i = 0; i < div; i++) {
         x.insert(x.end(), toHoldValues[i].begin(), toHoldValues[i].end());
     }
 }
@@ -174,8 +178,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     if(rem != 0 || check_depth > depth)depth++;
 
 
-    recurive_blelloch(spread_sum, depth);
-    recurive_blelloch(spread_sq_sum, depth);
+    recursive_blelloch(spread_sum, depth);
+    recursive_blelloch(spread_sq_sum, depth);
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
 

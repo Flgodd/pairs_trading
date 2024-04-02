@@ -16,13 +16,13 @@
 #include <cmath>
 #include <iostream>
 #include <array>
+#include <experimental/simd>
 //#include <experimental/execution_policy>
 #include <chrono>
 //#include <experimental/numeric>
 #include <arm_neon.h>
 #include <array>
 #include <thread>
-#include "omp.h"
 
 
 #define NUM_THREADS 8
@@ -30,6 +30,7 @@
 
 using namespace std;
 
+namespace simd = std::experimental;
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -76,80 +77,119 @@ vector<double> readCSV(const string& filename){
 
 void parallelUpSweep(vector<double>& x) {
     int n = x.size();
+    int numThreads = NUM_THREADS;
     int maxDepth = std::log2(n);
+    std::vector<std::thread> threads;
 
     for (int d = 0; d < maxDepth; ++d) {
-        int stride = std::pow(2, d);
-#pragma omp parallel for
-        for (int k = stride - 1; k < n; k += 2 * stride) {
-            x[k + stride] += x[k];
+        threads.clear();
+        int powerOfTwoDPlus1 = std::pow(2, d + 1);
+
+        for (int i = 0; i < numThreads; ++i) {
+            int start = i * n / numThreads;
+            int end = std::min(n, (i + 1) * n / numThreads);
+
+            start = (start / powerOfTwoDPlus1) * powerOfTwoDPlus1;
+            end = ((end + powerOfTwoDPlus1 - 1) / powerOfTwoDPlus1) * powerOfTwoDPlus1;
+
+            threads.emplace_back([=, &x]() {
+                for (int k = start; k < end; k += powerOfTwoDPlus1) {
+                    double idx1 = k + std::pow(2, d) - 1;
+                    double idx2 = k + powerOfTwoDPlus1 - 1;
+                    if (idx2 < n) {
+                        x[idx2] = x[idx1] + x[idx2];
+                    }
+                }
+            });
         }
+
+        for (auto& thread : threads) {
+            thread.join();
+        }
+        numThreads /= 2;
     }
 }
 
 void parallelDownSweep(vector<double>& x) {
     int n = x.size();
-    x[n - 1] = 0;
+    x[n - 1] = 0; // Initialize the last element to 0
+    int numThreads = 1;
     int maxDepth = std::log2(n);
+    std::vector<std::thread> threads;
 
     for (int d = maxDepth - 1; d >= 0; --d) {
-        int stride = std::pow(2, d);
-#pragma omp parallel for
-        for (int k = stride - 1; k < n; k += 2 * stride) {
-            double tmp = x[k];
-            x[k] = x[k + stride];
-            x[k + stride] += tmp;
+        threads.clear();
+        int powerOfTwoDPlus1 = std::pow(2, d + 1);
+
+        for (int i = 0; i < numThreads; ++i) {
+            int start = i * n / numThreads;
+            int end = std::min(n, (i + 1) * n / numThreads);
+
+            // Adjust start and end to align with powerOfTwoDPlus1 boundaries
+            start = (start / powerOfTwoDPlus1) * powerOfTwoDPlus1;
+            end = ((end + powerOfTwoDPlus1 - 1) / powerOfTwoDPlus1) * powerOfTwoDPlus1;
+
+            threads.emplace_back([=, &x]() {
+                for (int k = start; k < end; k += powerOfTwoDPlus1) {
+                    double idx1 = k + std::pow(2, d) - 1;
+                    double idx2 = k + powerOfTwoDPlus1 - 1;
+                    if (idx2 < n) {
+                        double tmp = x[idx1];
+                        x[idx1] = x[idx2];
+                        x[idx2] += tmp;
+                    }
+                }
+            });
         }
+
+        for (auto& thread : threads) {
+            thread.join();
+        }
+        numThreads *= 2;
     }
 }
 
-void recursive_blelloch(vector<double>& x, int depth) {
-    int n = x.size();
-    int numThreads = NUM_THREADS;
-
-    if (depth == 0 || n <= 2 * numThreads) {
-        parallelUpSweep(x);
-        parallelDownSweep(x);
-        return;
-    }
-
-    int div = n / (2 * numThreads);
-    int rem = n % (2 * numThreads);
-    if (rem != 0) {
-        x.resize(n + (2 * numThreads - rem), 0);
+void recurive_blelloch(vector<double>& x, int depth){
+    //if(depth == 0)return;
+    int rem = (x.size()%(NUM_THREADS*2));
+    int div = x.size()/(NUM_THREADS*2);
+    if(rem != 0){
+        rem = (NUM_THREADS*2) - rem;
+        for(int i = 0; i<rem; i++){
+            x.push_back(0);
+        }
         div++;
     }
 
+    int n = NUM_THREADS*2;
+    //change to one d vector
     vector<vector<double>> toHoldValues(div);
     vector<double> newX(div);
+    for(int i = 0; i<div; i++){
+        std::vector<double> temp(x.begin() + (n*i), x.begin() + (n*i + n));
 
-#pragma omp parallel for
-    for (int i = 0; i < div; i++) {
-        int start = 2 * numThreads * i;
-        int end = std::min(start + 2 * numThreads, static_cast<int>(x.size()));
-        vector<double> temp(x.begin() + start, x.begin() + end);
         parallelUpSweep(temp);
-        parallelDownSweep(temp);
-        toHoldValues[i] = temp;
-        newX[i] = temp.back() + x[end - 1];
-    }
 
+        parallelDownSweep(temp);
+        toHoldValues[i] = (temp);
+        newX[i]=(temp.back() + x[n*i + n-1]);
+
+    }
     double bigg = newX.back();
-    recursive_blelloch(newX, depth - 1);
+
+    if(depth-1==0){
+        x = toHoldValues[0];
+        return;
+    }
+    recurive_blelloch(newX, depth-1);
 
     x.clear();
+    //parallelise and using simd
     newX.push_back(newX.back() + bigg);
-
-#pragma omp parallel for
-    for (int i = 0; i < div; i++) {
-        double nx = newX[i];
-        for (int j = 0; j < toHoldValues[i].size(); j++) {
-            toHoldValues[i][j] += nx;
+    for(int i = 0; i<toHoldValues.size(); i++){
+        for(int j = 0; j<toHoldValues[i].size(); j++){
+            toHoldValues[i][j] += newX[i];
         }
-    }
-
-    x.reserve(x.size() + n);
-    for (int i = 0; i < div; i++) {
         x.insert(x.end(), toHoldValues[i].begin(), toHoldValues[i].end());
     }
 }
@@ -178,8 +218,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     if(rem != 0 || check_depth > depth)depth++;
 
 
-    recursive_blelloch(spread_sum, depth);
-    recursive_blelloch(spread_sq_sum, depth);
+    recurive_blelloch(spread_sum, depth);
+    recurive_blelloch(spread_sq_sum, depth);
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
 
@@ -202,6 +242,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     }
     cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
+    cout<<std::thread::hardware_concurrency()<<endl;
 }
 
 
