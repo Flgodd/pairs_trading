@@ -27,7 +27,7 @@
 
 using namespace std;
 
-namespace simd = std::experimental;
+namespace stdx = std::experimental;
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -86,18 +86,18 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     std::vector<int> check(4, 0);
     for(size_t i = N; i < stock1_prices.size(); ++i) {
-        using namespace std::experimental;
-        using Vd = simd<double>; // Use the default SIMD ABI for doubles
+
+        using Vd = stdx::simd<double>; // Use the default SIMD ABI for doubles
         Vd sum_vec(0.0), sq_sum_vec(0.0);
 
         for(size_t j = 0; j < N; j += Vd::size()) {
-            Vd spread_vec(&spread[j], simd_abi::native{}); // Load spread values into a SIMD vector
+            Vd spread_vec(&spread[j], stdx::element_aligned_tag{}); // Load spread values into a SIMD vector
             sum_vec += spread_vec;
             sq_sum_vec += spread_vec * spread_vec;
         }
 
-        double final_sum = reduce(sum_vec);
-        double final_sq_sum = reduce(sq_sum_vec);
+        double final_sum = stdx::reduce(sum_vec);
+        double final_sq_sum = stdx::reduce(sq_sum_vec);
 
         double mean = final_sum / N;
         double stddev = std::sqrt(final_sq_sum / N - mean * mean);
@@ -124,6 +124,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         spread_index = (spread_index + 1) % N;
     }
     cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+
 }
 
 
@@ -140,6 +141,7 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
 BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 8);
 
 BENCHMARK_MAIN();
+
 
 
 

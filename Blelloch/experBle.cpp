@@ -211,9 +211,6 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         spread_sq_sum[i] = current_spread*current_spread;
     }
 
-    int last_spread_sum = spread_sum.back();
-    int last_spread_sq_sum = spread_sq_sum.back();
-
     int depth = std::log(spread_sum.size())/log(NUM_THREADS*2);
     float  check_depth = std::log(spread_sum.size())/log(NUM_THREADS*2);
     int rem = (spread_sum.size()%(NUM_THREADS*2));
@@ -224,35 +221,10 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     recurive_blelloch(spread_sum, depth);
     recurive_blelloch(spread_sq_sum, depth);
 
-    spread_sum.erase(spread_sum.begin());
-    spread_sq_sum.erase(spread_sq_sum.begin());
+    for (size_t i = N; i < stock1_prices.size(); ++i) {
 
-    if(rem == 0){
-        spread_sum.push_back(last_spread_sum);
-        spread_sq_sum.push_back(last_spread_sq_sum);
-    }
-
-    const double mean = (spread_sum[N-1])/ N;
-    const double stddev = std::sqrt((spread_sq_sum[N-1])/ N - mean * mean);
-    const double current_spread = stock1_prices[N] - stock2_prices[N];
-    const double z_score = (current_spread - mean) / stddev;
-
-
-    if (z_score > 1.0) {
-        check[0]++;  // Long and Short
-    } else if (z_score < -1.0) {
-        check[1]++;  // Short and Long
-    } else if (std::abs(z_score) < 0.8) {
-        check[2]++;  // Close positions
-    } else {
-        check[3]++;  // No signal
-    }
-
-
-    for (size_t i = N+1; i < stock1_prices.size(); ++i) {
-
-        const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;
-        const double stddev = std::sqrt((spread_sq_sum[i-1] - spread_sq_sum[i-N-1])/ N - mean * mean);
+        const double mean = (spread_sum[i] - spread_sum[i-N])/ N;
+        const double stddev = std::sqrt((spread_sq_sum[i] - spread_sq_sum[i-N])/ N - mean * mean);
         const double current_spread = stock1_prices[i] - stock2_prices[i];
         const double z_score = (current_spread - mean) / stddev;
 
