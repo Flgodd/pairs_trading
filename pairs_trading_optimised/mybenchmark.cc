@@ -196,7 +196,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     }
     cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
-    cout<<std::thread::hardware_concurrency()<<endl;
+    cout<<omp_get_num_threads()<<endl;
 }
 
 
