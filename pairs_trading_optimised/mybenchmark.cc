@@ -15,7 +15,7 @@
 #include <numeric>
 #include <cmath>
 #include <iostream>
-
+#include <array>  // Add this line
 
 using namespace std;
 
@@ -66,7 +66,6 @@ vector<double> readCSV(const string& filename){
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 4 == 0, "N should be multiple of 4 for AVX2 instructions");
-
     std::array<double, N> spread;
     size_t spread_index = 0;
 
