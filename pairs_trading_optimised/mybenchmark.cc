@@ -25,7 +25,6 @@
 #include <omp.h>
 
 
-
 #define NUM_THREADS 256
 
 
@@ -50,6 +49,30 @@ void read_prices() {
 
 }
 
+
+vector<double> readCSV(const string& filename){
+    std::vector<double> prices;
+    std::ifstream file(filename);
+    std::string line;
+
+    std::getline(file, line);
+
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+        std::string value;
+        std::vector<std::string> row;
+
+        while (std::getline(ss, value, ',')) {
+            row.push_back(value);
+        }
+
+        double adjClose = std::stod(row[5]);
+        prices.push_back(adjClose);
+    }
+
+
+    return prices;
+}
 
 void parallelUpSweep(vector<double>& x) {
     int n = x.size();
