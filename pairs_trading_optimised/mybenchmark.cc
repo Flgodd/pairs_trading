@@ -140,10 +140,16 @@ void recursive_blelloch(vector<double>& x, int depth) {
     x.clear();
     newX.push_back(newX.back() + bigg);
 
+#pragma omp parallel for
     for (int i = 0; i < div; i++) {
+        double nx = newX[i];
         for (int j = 0; j < toHoldValues[i].size(); j++) {
-            toHoldValues[i][j] += newX[i];
+            toHoldValues[i][j] += nx;
         }
+    }
+
+    x.reserve(x.size() + n);
+    for (int i = 0; i < div; i++) {
         x.insert(x.end(), toHoldValues[i].begin(), toHoldValues[i].end());
     }
 }
