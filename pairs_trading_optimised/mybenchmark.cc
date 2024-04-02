@@ -135,7 +135,7 @@ void recursive_blelloch(vector<double>& x, int depth) {
     }
 
     double bigg = newX.back();
-    recurive_blelloch(newX, depth - 1);
+    recursive_blelloch(newX, depth - 1);
 
     x.clear();
     newX.push_back(newX.back() + bigg);
