@@ -1,3 +1,4 @@
+#include <benchmark/benchmark.h>
 #include <vector>
 #include <fstream>
 #include <sstream>
@@ -105,7 +106,21 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
 }
 
-int main()
+template<size_t N>
+void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
+    if (stock1_prices.empty() || stock2_prices.empty()) {
+        read_prices();
+    }
+    for (auto _ : state) {
+        pairs_trading_strategy_optimized<N>(stock1_prices, stock2_prices);
+    }
+}
+
+BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 8);
+
+BENCHMARK_MAIN();
+
+/*int main()
 {
     read_prices();
     cout<<stock1_prices.size()<<":"<<stock2_prices.size()<<endl;
@@ -122,4 +137,4 @@ int main()
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
     return 0;
-}
+}*/
