@@ -39,7 +39,7 @@
 
 using namespace std;
 const int N = 8;
-void test(double in[]) {
+/*void test(double in[]) {
     int NN  = 1256;
 	bool canBeBlockscanned = NN <= 1024;
 
@@ -100,7 +100,7 @@ void test(double in[]) {
 	//delete[] outHost;
 	//delete[] outGPU;
 	delete[] outGPU_bcao;
-}
+}*/
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
