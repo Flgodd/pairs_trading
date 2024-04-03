@@ -179,6 +179,9 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     float time_gpu_bcao2 = scan(outGPU_bcao2, spread_sq_sum_f, NN, true, stream2);
 
+    if(time_gpu_bcao2)cout<<"2"<<endl;
+    if(time_gpu_bcao1)cout<<"1"<<endl;
+
     cudaStreamSynchronize(stream1);
     cudaStreamSynchronize(stream2);
 
