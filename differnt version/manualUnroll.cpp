@@ -125,23 +125,23 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
         if(z_score > 1.0) {
             // Long and Short
-            check[0]++;
+            //check[0]++;
         } else if(z_score < -1.0) {
             // Short and Long
-            check[1]++;
+            //check[1]++;
         } else if (std::abs(z_score) < 0.8) {
             // Close positions
-            check[2]++;
+            //check[2]++;
         } else {
             // No signal
-            check[3]++;
+            //check[3]++;
         }
 
         //if(i==8)cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<":"<<sum[0]<<endl;
 
         spread_index = (spread_index + 1) % N;
     }
-    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
