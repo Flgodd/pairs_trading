@@ -76,7 +76,6 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     std::array<double, 9866> spread;
     //vector<int> check(4, 0);
-    cout<<spread.size()<<endl;
 
     spread[0] = stock1_prices[0] - stock2_prices[0];
     spread[1] = (stock1_prices[0] - stock2_prices[0])*(stock1_prices[0] - stock2_prices[0]);
@@ -96,6 +95,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         spread[idx + 1] = (current_spread*current_spread) + spread[idx -1] - (old_spread*old_spread);
 
     }
+    cout<<spread.size()<<endl;
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
         const int idx = (i-1)*2;
