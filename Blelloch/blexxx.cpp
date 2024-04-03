@@ -19,7 +19,7 @@
 //#include <experimental/execution_policy>
 #include <chrono>
 //#include <experimental/numeric>
-#include <arm_neon.h>
+//#include <arm_neon.h>
 #include <array>
 #include <thread>
 #include <omp.h>
@@ -161,7 +161,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     vector<double> spread_sum(1256);
     vector<double> spread_sq_sum(1256);
-    vector<int> check(4, 0);
+    //vector<int> check(4, 0);
 
 #pragma omp parallel for
     for(int i = 0; i<stock1_prices.size(); i++){
