@@ -171,9 +171,15 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     cudaStreamCreate(&stream1);
     cudaStreamCreate(&stream2);
 
+    cudaEvent_t start, end;
+    cudaEventCreate(&start);
+    cudaEventCreate(&end);
+
 // Allocate memory for the output arrays
     double *outGPU_bcao1 = new double[NN]();
     double *outGPU_bcao2 = new double[NN]();
+
+    cudaEventRecord(start, 0);
 
     float time_gpu_bcao1 = scan(outGPU_bcao1, spread_sum_f, NN, true, stream1);
 
@@ -185,9 +191,21 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     cudaStreamSynchronize(stream1);
     cudaStreamSynchronize(stream2);
 
-// Print the results
-    printResult("gpu bcao1", spread_sum_f[NN - 1], time_gpu_bcao1);
-    printResult("gpu bcao2", spread_sq_sum_f[NN - 1], time_gpu_bcao2);
+    cudaEventRecord(end, 0);
+    cudaEventSynchronize(end);
+
+// Calculate the total execution time
+    float totalTime = 0;
+    cudaEventElapsedTime(&totalTime, start, end);
+
+// Print the execution times
+    printf("Scan 1 execution time: %.2f ms\n", time_gpu_bcao1);
+    printf("Scan 2 execution time: %.2f ms\n", time_gpu_bcao2);
+    printf("Total execution time: %.2f ms\n", totalTime);
+
+// Destroy the CUDA events and streams
+    cudaEventDestroy(start);
+    cudaEventDestroy(end);
 
 // Destroy the CUDA streams
     cudaStreamDestroy(stream1);
