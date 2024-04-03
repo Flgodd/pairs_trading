@@ -5,7 +5,7 @@
 #include <string>
 #include <numeric>
 #include <cmath>
-//#include <immintrin.h>'
+//#include <immintrin.h>
 #include <iostream>
 #include <vector>
 #include <deque>
@@ -24,7 +24,6 @@
 
 
 using namespace std;
-
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -74,31 +73,35 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<double, 9866> spread;
-    //vector<int> check(4, 0);
+    std::array<double, N> spread;
+    vector<int> check(4, 0);
+    size_t spread_index = 0;
 
-    for(size_t i = 0; i < 9866; ++i) {
+    for(size_t i = 0; i < N; ++i) {
         spread[i] = stock1_prices[i] - stock2_prices[i];
+    }
+
+
+    double sum = 0.0;
+    double sq_sum = 0.0;
+
+    for (size_t i = 0; i < N; ++i) {
+        spread[i] = stock1_prices[i] - stock2_prices[i];
+        sum += spread[i];
+        sq_sum += spread[i] * spread[i];
     }
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
 
-        int start = i-N;
-
-        double sum = spread[start]+spread[start+1]+spread[start+2]+spread[start+3]
-                     + spread[start+4]+spread[start+5]+spread[start+6]+spread[start+7];
-
-        double sq_sum = (spread[start]*spread[start]) + (spread[start+1]*spread[start+1])
-                        + (spread[start+2]*spread[start+2]) + (spread[start+3]*spread[start+3])
-                        + (spread[start+4]*spread[start+4]) + (spread[start+5]*spread[start+5])
-                        + (spread[start+6]*spread[start+6]) + (spread[start+7]*spread[start+7]);
-
         double mean = sum / N;
         double stddev = std::sqrt(sq_sum / N - mean * mean);
-        double current_spread = spread[i];
+        double current_spread = stock1_prices[i] - stock2_prices[i];
         double z_score = (current_spread - mean) / stddev;
 
+        double old_value = spread[spread_index];
 
+
+        spread[spread_index] = current_spread;
         if (z_score > 1.0) {
             //check[0]++;  // Long and Short
         } else if (z_score < -1.0) {
@@ -109,6 +112,12 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
             //check[3]++;  // No signal
         }
 
+
+        sum += -old_value + current_spread;
+        sq_sum += -(old_value * old_value) + (current_spread * current_spread);
+
+
+        spread_index = (spread_index + 1) % N;
     }
     //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
