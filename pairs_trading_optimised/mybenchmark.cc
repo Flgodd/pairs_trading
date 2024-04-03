@@ -16,6 +16,7 @@
 #include <cmath>
 #include <iostream>
 #include <array>
+#include <experimental/simd>
 //#include <experimental/execution_policy>
 #include <chrono>
 //#include <experimental/numeric>
@@ -25,6 +26,7 @@
 
 using namespace std;
 
+namespace simd = std::experimental;
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -69,22 +71,6 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
-template<size_t N, size_t UnrollFactor>
-struct LoopUnroll {
-    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex) {
-        spread[startIndex] = stock1_prices[startIndex] - stock2_prices[startIndex];
-        spread[startIndex + 1] = stock1_prices[startIndex + 1] - stock2_prices[startIndex + 1];
-        LoopUnroll<N, UnrollFactor - 2>::computeSpread(spread, stock1_prices, stock2_prices, startIndex + 2);
-    }
-};
-
-template<size_t N>
-struct LoopUnroll<N, 0> {
-    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex) {
-        // Base case, do nothing
-    }
-};
-
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
@@ -93,25 +79,40 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     std::array<double, N> spread;
     size_t spread_index = 0;
 
-    /*for(size_t i = 0; i < N; ++i) {
-        spread[i] = stock1_prices[i] - stock2_prices[i];
-    }*/
-    LoopUnroll<N, N>::computeSpread(spread, stock1_prices, stock2_prices, 0);
-
+    spread[0] = stock1_prices[0] - stock2_prices[0];
+    spread[1] = stock1_prices[1] - stock2_prices[1];
+    spread[2] = stock1_prices[2] - stock2_prices[2];
+    spread[3] = stock1_prices[3] - stock2_prices[3];
+    spread[4] = stock1_prices[4] - stock2_prices[4];
+    spread[5] = stock1_prices[5] - stock2_prices[5];
+    spread[6] = stock1_prices[6] - stock2_prices[6];
+    spread[7] = stock1_prices[7] - stock2_prices[7];
 
     vector<int> check(4, 0);
     for(size_t i = N; i < stock1_prices.size(); ++i) {
         float64x2_t sum_vec = vdupq_n_f64(0.0);
         float64x2_t sq_sum_vec = vdupq_n_f64(0.0);
 
-        for(size_t j = 0; j < N; j += 2) {
-            float64x2_t spread_vec = vld1q_f64(&spread[j]);
-            sum_vec = vaddq_f64(sum_vec, spread_vec);
-            sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
-        }
+        float64x2_t spread_vec = vld1q_f64(&spread[0]);
+        sum_vec = vaddq_f64(sum_vec, spread_vec);
+        sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
+
+        spread_vec = vld1q_f64(&spread[2]);
+        sum_vec = vaddq_f64(sum_vec, spread_vec);
+        sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
+
+        spread_vec = vld1q_f64(&spread[4]);
+        sum_vec = vaddq_f64(sum_vec, spread_vec);
+        sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
+
+        spread_vec = vld1q_f64(&spread[6]);
+        sum_vec = vaddq_f64(sum_vec, spread_vec);
+        sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
+
 
         double sum[2], sq_sum[2];
         vst1q_f64(sum, sum_vec);
+
         vst1q_f64(sq_sum, sq_sum_vec);
         double final_sum = sum[0] + sum[1];
         double final_sq_sum = sq_sum[0] + sq_sum[1];
@@ -135,12 +136,14 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
             //check[2]++;
         } else {
             // No signal
-            // check[3]++;
+            //check[3]++;
         }
+
+        //if(i==8)cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<":"<<sum[0]<<endl;
 
         spread_index = (spread_index + 1) % N;
     }
-    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+   // cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
