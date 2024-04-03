@@ -74,7 +74,7 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<double, 9866> spread;
+    std::array<double, 19732> spread;
     //vector<int> check(4, 0);
 
     spread[0] = stock1_prices[0] - stock2_prices[0];
@@ -87,7 +87,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         spread[idx +1] = (current_spread)*(current_spread) + spread[idx - 1];
     }
 
-    for(size_t i = N; i<9866; i++){
+    for(size_t i = N; i<19732; i++){
         const int idx = i*2;
         double current_spread = stock1_prices[i] - stock2_prices[i];
         double old_spread = stock1_prices[i-N] - stock2_prices[i-N];
@@ -97,13 +97,12 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     }
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
-        cout<<"here"<<endl;
         const int idx = (i-1)*2;
         double mean = spread[idx]/ N;
         double stddev = std::sqrt(spread[idx +1]/ N - mean * mean);
         double current_spread = stock1_prices[i] - stock2_prices[i];
         double z_score = (current_spread - mean) / stddev;
-        cout<<spread.size()<<endl;
+
 
         if (z_score > 1.0) {
             //check[0]++;  // Long and Short
