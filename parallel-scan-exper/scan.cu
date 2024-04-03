@@ -72,7 +72,7 @@ float scan(double *output, double *input, int length, bool bcao, cudaStream_t st
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
-    cudaEventRecord(start);
+    cudaEventRecord(start, stream);
 
 	double *d_out, *d_in;
 	const int arraySize = length * sizeof(double);
@@ -82,11 +82,6 @@ float scan(double *output, double *input, int length, bool bcao, cudaStream_t st
     cudaMemcpyAsync(d_out, output, arraySize, cudaMemcpyHostToDevice, stream);
     cudaMemcpyAsync(d_in, input, arraySize, cudaMemcpyHostToDevice, stream);
 
-	/*// start timer
-	cudaEvent_t start, stop;
-	cudaEventCreate(&start);
-	cudaEventCreate(&stop);
-	cudaEventRecord(start);*/
 
 	if (length > ELEMENTS_PER_BLOCK) {
 		scanLargeDeviceArray(d_out, d_in, length, bcao, stream);
@@ -94,12 +89,6 @@ float scan(double *output, double *input, int length, bool bcao, cudaStream_t st
 	else {
 		scanSmallDeviceArray(d_out, d_in, length, bcao, stream);
 	}
-
-	// end timer
-	/*cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	float elapsedTime = 0;
-	cudaEventElapsedTime(&elapsedTime, start, stop);*/
 
     cudaMemcpyAsync(input, d_out, arraySize, cudaMemcpyDeviceToHost, stream);
 
@@ -131,7 +120,7 @@ void scanLargeDeviceArray(double *d_out, double *d_in, int length, bool bcao, cu
 		double *startOfOutputArray = &(d_out[lengthMultiple]);
 		scanSmallDeviceArray(startOfOutputArray, &(d_in[lengthMultiple]), remainder, bcao, stream);
 
-		add<<<1, remainder>>>(startOfOutputArray, remainder, &(d_in[lengthMultiple - 1]), &(d_out[lengthMultiple - 1]));
+		add<<<1, remainder, 0, stream>>>(startOfOutputArray, remainder, &(d_in[lengthMultiple - 1]), &(d_out[lengthMultiple - 1]));
 	}
 }
 
@@ -139,7 +128,7 @@ void scanSmallDeviceArray(double *d_out, double *d_in, int length, bool bcao, cu
 	int powerOfTwo = nextPowerOfTwo(length);
 
 	if (bcao) {
-		prescan_arbitrary << <1, (length + 1) / 2, 2 * powerOfTwo * sizeof(double), stream>>>(d_out, d_in, length, powerOfTwo);
+		prescan_arbitrary << <1, (length + 1) / 2, 2 * powerOfTwo * sizeof(double),stream>>>(d_out, d_in, length, powerOfTwo);
 	}
 	else {
 		prescan_arbitrary_unoptimized<< <1, (length + 1) / 2, 2 * powerOfTwo * sizeof(double), stream >>>(d_out, d_in, length, powerOfTwo);
@@ -171,7 +160,7 @@ void scanLargeEvenDeviceArray(double *d_out, double *d_in, int length, bool bcao
 		scanSmallDeviceArray(d_incr, d_sums, blocks, bcao, stream);
 	}
 
-	add<<<blocks, ELEMENTS_PER_BLOCK>>>(d_out, ELEMENTS_PER_BLOCK, d_incr);
+	add<<<blocks, ELEMENTS_PER_BLOCK,  0, stream>>>(d_out, ELEMENTS_PER_BLOCK, d_incr);
 
 	cudaFree(d_sums);
 	cudaFree(d_incr);
