@@ -68,7 +68,7 @@ long sequential_scan(double* output, double* input, int length) {
 	return elapsedTime;
 }*/
 
-float scan(double *output, double *input, int length, bool bcao, cudaStream_t stream)) {
+float scan(double *output, double *input, int length, bool bcao, cudaStream_t stream) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -120,7 +120,7 @@ float scan(double *output, double *input, int length, bool bcao, cudaStream_t st
 void scanLargeDeviceArray(double *d_out, double *d_in, int length, bool bcao, cudaStream_t stream) {
 	int remainder = length % (ELEMENTS_PER_BLOCK);
 	if (remainder == 0) {
-		scanLargeEvenDeviceArray(d_out, d_in, length, bcao);
+		scanLargeEvenDeviceArray(d_out, d_in, length, bcao, stream);
 	}
 	else {
 		// perform a large scan on a compatible multiple of elements
