@@ -153,10 +153,10 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
     //1256 : 9866
-    cudaEvent_t start, stop;
+    /*cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
-    cudaEventRecord(start);
+    cudaEventRecord(start);*/
     const int NN  = 1256;
     double spread_sum_f[1256];
     double spread_sq_sum_f[1256];
@@ -170,20 +170,20 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     //test(spread_sum_f);
     double *outGPU_bcao = new double[NN]();
     float time_gpu_bcao = scan(outGPU_bcao, spread_sum_f, NN, true);
-    printResult("gpu bcao", spread_sum_f[NN - 1], time_gpu_bcao);
+    //printResult("gpu bcao", spread_sum_f[NN - 1], time_gpu_bcao);
 
     //test(spread_sq_sum_f);
     float time_gpu_bcao2 = scan(outGPU_bcao, spread_sq_sum_f, NN, true);
-    printResult("gpu bcao", spread_sq_sum_f[NN - 1], time_gpu_bcao2);
+   //printResult("gpu bcao", spread_sq_sum_f[NN - 1], time_gpu_bcao2);
 
     calc_zz(stock1_prices,stock2_prices,spread_sum_f, spread_sq_sum_f,  check, spread_size);
-    cudaEventRecord(stop);
+    /*cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     float elapsedTime = 0;
     cudaEventElapsedTime(&elapsedTime, start, stop);
     cout<<"calc_zz: "<<elapsedTime<<endl;
     cudaEventDestroy(start);
-    cudaEventDestroy(stop);
+    cudaEventDestroy(stop);*/
 
     //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
