@@ -167,12 +167,28 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     fillArrays(stock1_prices, stock2_prices, spread_sum_f, spread_sq_sum_f, spread_size);
 
 
-    double *outGPU_bcao = new double[NN]();
-    float time_gpu_bcao = scan(outGPU_bcao, spread_sum_f, NN, true);
-    //printResult("gpu bcao", spread_sum_f[NN - 1], time_gpu_bcao);
+    cudaStream_t stream1, stream2;
+    cudaStreamCreate(&stream1);
+    cudaStreamCreate(&stream2);
 
-    float time_gpu_bcao2 = scan(outGPU_bcao, spread_sq_sum_f, NN, true);
-   //printResult("gpu bcao", spread_sq_sum_f[NN - 1], time_gpu_bcao2);
+// Allocate memory for the output arrays
+    double *outGPU_bcao1 = new double[NN]();
+    double *outGPU_bcao2 = new double[NN]();
+
+    float time_gpu_bcao1 = scan(outGPU_bcao1, spread_sum_f, NN, true, stream1);
+
+    float time_gpu_bcao2 = scan(outGPU_bcao2, spread_sq_sum_f, NN, true, stream2);
+
+    cudaStreamSynchronize(stream1);
+    cudaStreamSynchronize(stream2);
+
+// Print the results
+    printResult("gpu bcao1", spread_sum_f[NN - 1], time_gpu_bcao1);
+    printResult("gpu bcao2", spread_sq_sum_f[NN - 1], time_gpu_bcao2);
+
+// Destroy the CUDA streams
+    cudaStreamDestroy(stream1);
+    cudaStreamDestroy(stream2);
 
     calc_zz(stock1_prices,stock2_prices,spread_sum_f, spread_sq_sum_f,  check, spread_size);
 
