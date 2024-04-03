@@ -30,7 +30,6 @@
 
 using namespace std;
 
-namespace simd = std::experimental;
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -197,8 +196,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     vector<double> spread_sq_sum(stock1_prices.size());
     vector<int> check(4, 0);
 
-    std::transform(std::execution::par, stock1_prices.begin(), stock1_prices.end(), stock2_prices.begin(), spread_sum.begin(), std::minus<double>());
-    std::transform(std::execution::par, spread_sum.begin(), spread_sum.end(), spread_sum.begin(), spread_sq_sum.begin(), std::multiplies<double>());
+    std::transform(stock1_prices.begin(), stock1_prices.end(), stock2_prices.begin(), spread_sum.begin(), std::minus<double>());
+    std::transform(spread_sum.begin(), spread_sum.end(), spread_sum.begin(), spread_sq_sum.begin(), std::multiplies<double>());
 
     int depth = std::log(spread_sum.size())/log(NUM_THREADS*2);
     float check_depth = std::log(spread_sum.size())/log(NUM_THREADS*2);
