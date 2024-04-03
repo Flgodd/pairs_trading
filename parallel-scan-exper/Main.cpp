@@ -39,68 +39,68 @@
 
 using namespace std;
 const int N = 8;
-/*void test(double in[]) {
-    int NN  = 1256;
-	bool canBeBlockscanned = NN <= 1024;
-
-	time_t t;
-	srand((unsigned)time(&t));
-	/*int *in = new int[N];
-	for (int i = 0; i < N; i++) {
-		in[i] = i+1;//rand() % 10;
-	}*/
-
-	printf("%i Elements \n", NN);
-
-		/*// sequential scan on CPU
-		double *outHost = new double[NN]();
-		long time_host = sequential_scan(outHost, in, NN);
-		printResult("host    ", outHost[NN - 1], time_host);*/
-		/*// full scan
-		double *outGPU = new double[NN]();
-		float time_gpu = scan(outGPU, in, NN, false);
-		printResult("gpu     ", outGPU[NN - 1], time_gpu);*/
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start);
-		// full scan with BCAO
-		double *outGPU_bcao = new double[NN]();
-		float time_gpu_bcao = scan(outGPU_bcao, in, NN, true);
-		printResult("gpu bcao", in[NN - 1], time_gpu_bcao);
-
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    float elapsedTime = 0;
-    cudaEventElapsedTime(&elapsedTime, start, stop);
-    cout<<"in test: "<<elapsedTime<<endl;
-    cudaEventDestroy(start);
-    cudaEventDestroy(stop);
-		/*if (canBeBlockscanned) {
-			// basic level 1 block scan
-			int *out_1block = new int[N]();
-			float time_1block = blockscan(out_1block, in, N, false);
-			printResult("level 1 ", out_1block[N - 1], time_1block);
-
-			// level 1 block scan with BCAO
-			int *out_1block_bcao = new int[N]();
-			float time_1block_bcao = blockscan(out_1block_bcao, in, N, true);
-			printResult("l1 bcao ", out_1block_bcao[N - 1], time_1block_bcao);
-
-			delete[] out_1block;
-			delete[] out_1block_bcao;
-		}*/
-
-	printf("\n");
-
-    /*for (int i = 0; i < 1256; i++) {
-        //if(outHost[i] != outGPU[i])cout<<"outHost:"<<outHost[i]<<" outGPU:"<<outGPU[i]<<endl;
-        in[i] = outGPU_bcao[i];
-    }*/
-	//delete[] outHost;
-	//delete[] outGPU;
-	delete[] outGPU_bcao;
-}*/
+//void test(double in[]) {
+//    int NN  = 1256;
+//	bool canBeBlockscanned = NN <= 1024;
+//
+//	time_t t;
+//	srand((unsigned)time(&t));
+//	/*int *in = new int[N];
+//	for (int i = 0; i < N; i++) {
+//		in[i] = i+1;//rand() % 10;
+//	}*/
+//
+//	printf("%i Elements \n", NN);
+//
+//		/*// sequential scan on CPU
+//		double *outHost = new double[NN]();
+//		long time_host = sequential_scan(outHost, in, NN);
+//		printResult("host    ", outHost[NN - 1], time_host);*/
+//		/*// full scan
+//		double *outGPU = new double[NN]();
+//		float time_gpu = scan(outGPU, in, NN, false);
+//		printResult("gpu     ", outGPU[NN - 1], time_gpu);*/
+//    cudaEvent_t start, stop;
+//    cudaEventCreate(&start);
+//    cudaEventCreate(&stop);
+//    cudaEventRecord(start);
+//		// full scan with BCAO
+//		double *outGPU_bcao = new double[NN]();
+//		float time_gpu_bcao = scan(outGPU_bcao, in, NN, true);
+//		printResult("gpu bcao", in[NN - 1], time_gpu_bcao);
+//
+//    cudaEventRecord(stop);
+//    cudaEventSynchronize(stop);
+//    float elapsedTime = 0;
+//    cudaEventElapsedTime(&elapsedTime, start, stop);
+//    cout<<"in test: "<<elapsedTime<<endl;
+//    cudaEventDestroy(start);
+//    cudaEventDestroy(stop);
+//		/*if (canBeBlockscanned) {
+//			// basic level 1 block scan
+//			int *out_1block = new int[N]();
+//			float time_1block = blockscan(out_1block, in, N, false);
+//			printResult("level 1 ", out_1block[N - 1], time_1block);
+//
+//			// level 1 block scan with BCAO
+//			int *out_1block_bcao = new int[N]();
+//			float time_1block_bcao = blockscan(out_1block_bcao, in, N, true);
+//			printResult("l1 bcao ", out_1block_bcao[N - 1], time_1block_bcao);
+//
+//			delete[] out_1block;
+//			delete[] out_1block_bcao;
+//		}*/
+//
+//	printf("\n");
+//
+//    /*for (int i = 0; i < 1256; i++) {
+//        //if(outHost[i] != outGPU[i])cout<<"outHost:"<<outHost[i]<<" outGPU:"<<outGPU[i]<<endl;
+//        in[i] = outGPU_bcao[i];
+//    }*/
+//	//delete[] outHost;
+//	//delete[] outGPU;
+//	delete[] outGPU_bcao;
+//}
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
