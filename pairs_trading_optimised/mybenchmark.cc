@@ -1,3 +1,4 @@
+//RUN ON P3 Isambard
 #include <benchmark/benchmark.h>
 #include <vector>
 #include <fstream>
@@ -16,15 +17,19 @@
 #include <cmath>
 #include <iostream>
 #include <array>
+//#include "experimental/simd"
+#include <experimental/simd>
 //#include <experimental/execution_policy>
 #include <chrono>
 //#include <experimental/numeric>
-#include <arm_neon.h>
+//#include <arm_neon.h>
 #include <array>
+
 
 
 using namespace std;
 
+namespace stdx = std::experimental;
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -69,34 +74,10 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
-template<size_t Index, size_t N>
-struct LoopUnroller {
-    static void unroll(const std::array<double, N>& spread, float64x2_t& sum_vec, float64x2_t& sq_sum_vec) {
-        constexpr size_t j = Index*2; // Assuming N is even and can be fully unrolled by 2's
-        //cout<<Index<<":"<<j<<endl;
-        float64x2_t spread_vec = vld1q_f64(&spread[j]);
-        sum_vec = vaddq_f64(sum_vec, spread_vec);
-        sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
-
-        LoopUnroller<Index - 1, N>::unroll(spread, sum_vec, sq_sum_vec);
-    }
-};
-
-template<size_t N>
-struct LoopUnroller<0, N> {
-    static void unroll(const std::array<double, N>& spread, float64x2_t& sum_vec, float64x2_t& sq_sum_vec) {
-        const size_t j = 0;
-        float64x2_t spread_vec = vld1q_f64(&spread[j]);
-        sum_vec = vaddq_f64(sum_vec, spread_vec);
-        sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
-    }
-};
-
-
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
-    static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
+    static_assert(N % 2 == 0, "N should be a multiple of 2 for SIMD operations");
 
     std::array<double, N> spread;
     size_t spread_index = 0;
@@ -105,18 +86,20 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         spread[i] = stock1_prices[i] - stock2_prices[i];
     }
 
-    vector<int> check(4, 0);
+    std::vector<int> check(4, 0);
     for(size_t i = N; i < stock1_prices.size(); ++i) {
-        float64x2_t sum_vec = vdupq_n_f64(0.0);
-        float64x2_t sq_sum_vec = vdupq_n_f64(0.0);
 
-        LoopUnroller<N / 2 - 1, N>::unroll(spread, sum_vec, sq_sum_vec);
+        using Vd = stdx::simd<double>; // Use the default SIMD ABI for doubles
+        Vd sum_vec(0.0), sq_sum_vec(0.0);
 
-        double sum[2], sq_sum[2];
-        vst1q_f64(sum, sum_vec);
-        vst1q_f64(sq_sum, sq_sum_vec);
-        double final_sum = sum[0] + sum[1];
-        double final_sq_sum = sq_sum[0] + sq_sum[1];
+        for(size_t j = 0; j < N; j += 4) {
+            Vd spread_vec(&spread[j], stdx::element_aligned_tag{}); // Load spread values into a SIMD vector
+            sum_vec += spread_vec;
+            sq_sum_vec += spread_vec * spread_vec;
+        }
+
+        double final_sum = stdx::reduce(sum_vec);
+        double final_sq_sum = stdx::reduce(sq_sum_vec);
 
         double mean = final_sum / N;
         double stddev = std::sqrt(final_sq_sum / N - mean * mean);
@@ -142,7 +125,6 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
         spread_index = (spread_index + 1) % N;
     }
-
     //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
