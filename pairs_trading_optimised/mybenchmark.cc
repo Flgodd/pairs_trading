@@ -88,7 +88,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         for(size_t j = 0; j < N; j += 4) {
             float32x4_t spread_vec = vld1q_f32(&spread[j]);
             sum_vec = vaddq_f32(sum_vec, spread_vec);
-            sq_sum_vec = vaddq_f32(sq_sum_vec, vmulq_f32(spread_vec, spread_vec));
+            sq_sum_vec = vfmaq_f32(sq_sum_vec, spread_vec, spread_vec);
         }
         float sum[4], sq_sum[4];
         vst1q_f32(sum, sum_vec);
