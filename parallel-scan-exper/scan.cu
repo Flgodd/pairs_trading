@@ -89,7 +89,7 @@ float scan(double *output, double *input, int length, bool bcao, cudaStream_t st
 	else {
 		scanSmallDeviceArray(d_out, d_in, length, bcao, stream);
 	}
-    printf("d_out:%f\n", d_out[3]);
+    printf("d_out:%f\n", input[3]);
     cudaMemcpyAsync(input, d_out, arraySize, cudaMemcpyDeviceToHost, stream);
 
     cudaEventRecord(stop, stream);
