@@ -65,7 +65,7 @@ struct LoopUnroll {
             __m256d spread_vec = _mm256_loadu_pd(&spread[Index]);
             sum_vec = _mm256_add_pd(sum_vec, spread_vec);
             sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
-            InnerLoopUnroll<Index + 4, N>::execute(spread, sum_vec, sq_sum_vec); // Increment by 4
+            LoopUnroll<Index + 4, N>::unroll(spread, sum_vec, sq_sum_vec); // Increment by 4
         }
     }
 };
