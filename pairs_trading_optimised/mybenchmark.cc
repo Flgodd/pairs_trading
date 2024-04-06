@@ -60,7 +60,7 @@ vector<double> readCSV(const string& filename){
 
 template<size_t Index, size_t N>
 struct LoopUnroll {
-    static void execute(const std::array<double, N>& spread, __m256d& sum_vec, __m256d& sq_sum_vec) {
+    static void unroll(const std::array<double, N>& spread, __m256d& sum_vec, __m256d& sq_sum_vec) {
         if constexpr (Index < N) {
             __m256d spread_vec = _mm256_loadu_pd(&spread[Index]);
             sum_vec = _mm256_add_pd(sum_vec, spread_vec);
