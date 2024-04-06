@@ -69,7 +69,7 @@ struct LoopUnroller {
     }
 };
 
-/*template<size_t N>
+template<size_t N>
 struct LoopUnroller<0, N> {
     static void unroll(const std::array<double, N>& spread, __m256d& sum_vec, __m256d& sq_sum_vec) {
         constexpr size_t j = 0;
@@ -77,7 +77,7 @@ struct LoopUnroller<0, N> {
         sum_vec = _mm256_add_pd(sum_vec, spread_vec);
         sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
     }
-};*/
+};
 
 template<size_t N, size_t UnrollFactor>
 struct LoopUnroll {
@@ -152,4 +152,3 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
 BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 8);
 
 BENCHMARK_MAIN();
-

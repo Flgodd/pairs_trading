@@ -5,22 +5,11 @@
 #include <string>
 #include <numeric>
 #include <cmath>
-//#include <immintrin.h>
-#include <iostream>
-#include <vector>
-#include <deque>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <numeric>
-#include <cmath>
+#include <immintrin.h>
 #include <iostream>
 #include <array>
-//#include <experimental/execution_policy>
 #include <chrono>
-//#include <experimental/numeric>
-#include <arm_neon.h>
-#include <array>
+
 
 
 using namespace std;
@@ -88,32 +77,26 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     vector<int> check(4, 0);
     for(size_t i = N; i < stock1_prices.size(); ++i) {
-        float64x2_t sum_vec = vdupq_n_f64(0.0);
-        float64x2_t sq_sum_vec = vdupq_n_f64(0.0);
-
-        float64x2_t spread_vec = vld1q_f64(&spread[0]);
-        sum_vec = vaddq_f64(sum_vec, spread_vec);
-        sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
-
-        spread_vec = vld1q_f64(&spread[2]);
-        sum_vec = vaddq_f64(sum_vec, spread_vec);
-        sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
-
-        spread_vec = vld1q_f64(&spread[4]);
-        sum_vec = vaddq_f64(sum_vec, spread_vec);
-        sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
-
-        spread_vec = vld1q_f64(&spread[6]);
-        sum_vec = vaddq_f64(sum_vec, spread_vec);
-        sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
+        __m256d sum_vec = _mm256_setzero_pd();
+        __m256d sq_sum_vec = _mm256_setzero_pd();
 
 
-        double sum[2], sq_sum[2];
-        vst1q_f64(sum, sum_vec);
+        __m256d spread_vec = _mm256_loadu_pd(&spread[0]);
+        sum_vec = _mm256_add_pd(sum_vec, spread_vec);
+        sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
 
-        vst1q_f64(sq_sum, sq_sum_vec);
-        double final_sum = sum[0] + sum[1];
-        double final_sq_sum = sq_sum[0] + sq_sum[1];
+        __m256d spread_vec = _mm256_loadu_pd(&spread[4]);
+        sum_vec = _mm256_add_pd(sum_vec, spread_vec);
+        sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
+
+        __m256d temp1 = _mm256_hadd_pd(sum_vec, sum_vec);
+        __m256d sum_vec_total = _mm256_add_pd(temp1, _mm256_permute2f128_pd(temp1, temp1, 0x1));
+
+        __m256d temp2 = _mm256_hadd_pd(sq_sum_vec, sq_sum_vec);
+        __m256d sq_sum_vec_total = _mm256_add_pd(temp2, _mm256_permute2f128_pd(temp2, temp2, 0x1));
+
+        double final_sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sum_vec_total));
+        double final_sq_sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sq_sum_vec_total));
 
         double mean = final_sum / N;
         double stddev = std::sqrt(final_sq_sum / N - mean * mean);
