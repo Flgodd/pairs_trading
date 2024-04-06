@@ -1,11 +1,5 @@
 #include <benchmark/benchmark.h>
-#include <vector>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <numeric>
-#include <cmath>
-//#include <immintrin.h>
+#include <immintrin.h>
 #include <iostream>
 #include <vector>
 #include <deque>
@@ -14,12 +8,7 @@
 #include <string>
 #include <numeric>
 #include <cmath>
-#include <iostream>
-#include <array>
-//#include <experimental/execution_policy>
 #include <chrono>
-//#include <experimental/numeric>
-#include <arm_neon.h>
 #include <array>
 
 
@@ -73,7 +62,6 @@ template<size_t Index, size_t N>
 struct LoopUnroller {
     static void unroll(const std::array<double, N>& spread, float64x2_t& sum_vec, float64x2_t& sq_sum_vec) {
         constexpr size_t j = Index*2; // Assuming N is even and can be fully unrolled by 2's
-        //cout<<Index<<":"<<j<<endl;
         float64x2_t spread_vec = vld1q_f64(&spread[j]);
         sum_vec = vaddq_f64(sum_vec, spread_vec);
         sq_sum_vec = vaddq_f64(sq_sum_vec, vmulq_f64(spread_vec, spread_vec));
