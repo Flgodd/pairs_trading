@@ -79,14 +79,29 @@ struct LoopUnroller<0, N> {
     }
 };
 
+template<size_t N, size_t UnrollFactor>
+struct LoopUnroll {
+    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex) {
+        spread[startIndex] = stock1_prices[startIndex] - stock2_prices[startIndex];
+        spread[startIndex + 1] = stock1_prices[startIndex + 1] - stock2_prices[startIndex + 1];
+        LoopUnroll<N, UnrollFactor - 2>::computeSpread(spread, stock1_prices, stock2_prices, startIndex + 2);
+    }
+};
+
+template<size_t N>
+struct LoopUnroll<N, 0> {
+    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex) {
+        // Base case, do nothing
+    }
+};
+
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 4 == 0, "N should be a multiple of 4 for AVX instructions");
     std::array<double, N> spread;
     size_t spread_index = 0;
-    for (size_t i = 0; i < N; ++i) {
-        spread[i] = stock1_prices[i] - stock2_prices[i];
-    }
+    LoopUnroll<N, N>::computeSpread(spread, stock1_prices, stock2_prices, 0);
+
     vector<int> check(4, 0);
     for (size_t i = N; i < stock1_prices.size(); ++i) {
         __m256d sum_vec = _mm256_setzero_pd();
