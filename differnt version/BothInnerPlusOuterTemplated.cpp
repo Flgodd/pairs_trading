@@ -13,8 +13,6 @@
 
 using namespace std;
 
-namespace simd = std::experimental;
-
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
 
