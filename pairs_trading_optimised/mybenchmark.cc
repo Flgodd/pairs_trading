@@ -7,16 +7,18 @@
 #include <cmath>
 #include <immintrin.h>
 #include <iostream>
-#include <array>
 #include <chrono>
-
+#include <array>
 
 
 using namespace std;
 
+namespace simd = std::experimental;
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
+
+constexpr size_t STOCK_SIZE = 1256; //for loop unrolling example gotta keep const otherwise runtime.
 
 
 vector<double> readCSV(const string& filename);
@@ -58,6 +60,99 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
+template<size_t Index, size_t N>
+struct InnerLoopUnroll {
+    static void execute(const std::array<double, N>& spread, __m256d& sum_vec, __m256d& sq_sum_vec) {
+        if constexpr (Index < N) {
+            __m256d spread_vec = _mm256_loadu_pd(&spread[Index]);
+            sum_vec = _mm256_add_pd(sum_vec, spread_vec);
+            sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
+            InnerLoopUnroll<Index + 4, N>::execute(spread, sum_vec, sq_sum_vec); // Increment by 4
+        }
+    }
+};
+
+// Outer loop unrolling template
+template<size_t I, size_t N>
+struct OuterLoopUnrollFirstSeg {
+    static void execute(vector<int>& check, size_t& spread_index, const vector<double>& stock1_prices, const vector<double>& stock2_prices, array<double, N>& spread) {
+        if constexpr (I < 1000) {
+            const size_t i = I;
+            __m256d sum_vec = _mm256_setzero_pd();
+            __m256d sq_sum_vec = _mm256_setzero_pd();
+            InnerLoopUnroll<0, N>::execute(spread, sum_vec, sq_sum_vec);
+            double sum[4], sq_sum[4];
+            _mm256_storeu_pd(sum, sum_vec);
+            _mm256_storeu_pd(sq_sum, sq_sum_vec);
+            double final_sum = sum[0] + sum[1] + sum[2] + sum[3];
+            double final_sq_sum = sq_sum[0] + sq_sum[1] + sq_sum[2] + sq_sum[3];
+            double mean = final_sum / N;
+            double stddev = std::sqrt(final_sq_sum / N - mean * mean);
+            double current_spread = stock1_prices[i] - stock2_prices[i];
+            double z_score = (current_spread - mean) / stddev;
+            spread[spread_index] = current_spread;
+            if (z_score > 1.0) {
+                // Long and Short
+                //check[0]++;
+            }
+            else if (z_score < -1.0) {
+                // Short and Long
+                //check[1]++;
+            }
+            else if (std::abs(z_score) < 0.8) {
+                // Close positions
+                //check[2]++;
+            }
+            else {
+                // No signal
+                //check[3]++;
+            }
+            spread_index = (spread_index + 1) % N;
+            OuterLoopUnrollFirstSeg<I + 1, N>::execute(check, spread_index, stock1_prices, stock2_prices, spread);
+        }
+    }
+};
+
+template<size_t I, size_t N, size_t startIdx>
+struct OuterLoopUnrollSecondSeg {
+    static void execute(vector<int>& check, size_t& spread_index, const vector<double>& stock1_prices, const vector<double>& stock2_prices, array<double, N>& spread) {
+        if constexpr (I < startIdx + 256) {
+            const size_t i = I;
+            __m256d sum_vec = _mm256_setzero_pd();
+            __m256d sq_sum_vec = _mm256_setzero_pd();
+            InnerLoopUnroll<0, N>::execute(spread, sum_vec, sq_sum_vec);
+            double sum[4], sq_sum[4];
+            _mm256_storeu_pd(sum, sum_vec);
+            _mm256_storeu_pd(sq_sum, sq_sum_vec);
+            double final_sum = sum[0] + sum[1] + sum[2] + sum[3];
+            double final_sq_sum = sq_sum[0] + sq_sum[1] + sq_sum[2] + sq_sum[3];
+            double mean = final_sum / N;
+            double stddev = std::sqrt(final_sq_sum / N - mean * mean);
+            double current_spread = stock1_prices[i] - stock2_prices[i];
+            double z_score = (current_spread - mean) / stddev;
+            spread[spread_index] = current_spread;
+            if (z_score > 1.0) {
+                // Long and Short
+                //check[0]++;
+            }
+            else if (z_score < -1.0) {
+                // Short and Long
+                //check[1]++;
+            }
+            else if (std::abs(z_score) < 0.8) {
+                // Close positions
+                //check[2]++;
+            }
+            else {
+                // No signal
+                //check[3]++;
+            }
+            spread_index = (spread_index + 1) % N;
+            OuterLoopUnrollSecondSeg<I + 1, N, startIdx>::execute(check, spread_index, stock1_prices, stock2_prices, spread);
+        }
+    }
+};
+
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
@@ -66,64 +161,15 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     std::array<double, N> spread;
     size_t spread_index = 0;
 
-    spread[0] = stock1_prices[0] - stock2_prices[0];
-    spread[1] = stock1_prices[1] - stock2_prices[1];
-    spread[2] = stock1_prices[2] - stock2_prices[2];
-    spread[3] = stock1_prices[3] - stock2_prices[3];
-    spread[4] = stock1_prices[4] - stock2_prices[4];
-    spread[5] = stock1_prices[5] - stock2_prices[5];
-    spread[6] = stock1_prices[6] - stock2_prices[6];
-    spread[7] = stock1_prices[7] - stock2_prices[7];
+    for(size_t i = 0; i < N; ++i) {
+        spread[i] = stock1_prices[i] - stock2_prices[i];
+    }
 
     vector<int> check(4, 0);
-    for(size_t i = N; i < stock1_prices.size(); ++i) {
-        __m256d sum_vec = _mm256_setzero_pd();
-        __m256d sq_sum_vec = _mm256_setzero_pd();
 
+    OuterLoopUnrollFirstSeg<N, N>::execute(check, spread_index, stock1_prices, stock2_prices, spread);
+    OuterLoopUnrollSecondSeg<1000, N, 1000>::execute(check, spread_index, stock1_prices, stock2_prices, spread);
 
-        __m256d spread_vec = _mm256_loadu_pd(&spread[0]);
-        sum_vec = _mm256_add_pd(sum_vec, spread_vec);
-        sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
-
-        spread_vec = _mm256_loadu_pd(&spread[4]);
-        sum_vec = _mm256_add_pd(sum_vec, spread_vec);
-        sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
-
-        __m256d temp1 = _mm256_hadd_pd(sum_vec, sum_vec);
-        __m256d sum_vec_total = _mm256_add_pd(temp1, _mm256_permute2f128_pd(temp1, temp1, 0x1));
-
-        __m256d temp2 = _mm256_hadd_pd(sq_sum_vec, sq_sum_vec);
-        __m256d sq_sum_vec_total = _mm256_add_pd(temp2, _mm256_permute2f128_pd(temp2, temp2, 0x1));
-
-        double final_sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sum_vec_total));
-        double final_sq_sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sq_sum_vec_total));
-
-        double mean = final_sum / N;
-        double stddev = std::sqrt(final_sq_sum / N - mean * mean);
-
-        double current_spread = stock1_prices[i] - stock2_prices[i];
-        double z_score = (current_spread - mean) / stddev;
-
-        spread[spread_index] = current_spread;
-
-        if(z_score > 1.0) {
-            // Long and Short
-            //check[0]++;
-        } else if(z_score < -1.0) {
-            // Short and Long
-            //check[1]++;
-        } else if (std::abs(z_score) < 0.8) {
-            // Close positions
-            //check[2]++;
-        } else {
-            // No signal
-            //check[3]++;
-        }
-
-        //if(i==8)cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<":"<<sum[0]<<endl;
-
-        spread_index = (spread_index + 1) % N;
-    }
     //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
@@ -142,4 +188,3 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
 BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 8);
 
 BENCHMARK_MAIN();
-
