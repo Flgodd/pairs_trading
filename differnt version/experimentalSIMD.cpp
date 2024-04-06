@@ -1,12 +1,5 @@
 //RUN ON P3 Isambard
 #include <benchmark/benchmark.h>
-#include <vector>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <numeric>
-#include <cmath>
-//#include <immintrin.h>
 #include <iostream>
 #include <vector>
 #include <deque>
@@ -17,12 +10,8 @@
 #include <cmath>
 #include <iostream>
 #include <array>
-//#include "experimental/simd"
 #include <experimental/simd>
-//#include <experimental/execution_policy>
 #include <chrono>
-//#include <experimental/numeric>
-//#include <arm_neon.h>
 #include <array>
 
 
