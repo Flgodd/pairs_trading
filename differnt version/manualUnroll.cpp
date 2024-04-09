@@ -75,7 +75,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     spread[6] = stock1_prices[6] - stock2_prices[6];
     spread[7] = stock1_prices[7] - stock2_prices[7];
 
-    vector<int> check(4, 0);
+    //vector<int> check(4, 0);
     for(size_t i = N; i < stock1_prices.size(); ++i) {
         __m256d sum_vec = _mm256_setzero_pd();
         __m256d sq_sum_vec = _mm256_setzero_pd();

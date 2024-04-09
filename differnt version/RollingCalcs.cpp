@@ -7,20 +7,9 @@
 #include <cmath>
 //#include <immintrin.h>
 #include <iostream>
-#include <vector>
-#include <deque>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <numeric>
-#include <cmath>
-#include <iostream>
 #include <array>
-//#include <experimental/execution_policy>
 #include <chrono>
-//#include <experimental/numeric>
-//#include <arm_neon.h>
-#include <array>
+
 
 
 using namespace std;
@@ -74,12 +63,11 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
     std::array<double, N> spread;
-    vector<int> check(4, 0);
     size_t spread_index = 0;
 
-    for(size_t i = 0; i < N; ++i) {
-        spread[i] = stock1_prices[i] - stock2_prices[i];
-    }
+//    for(size_t i = 0; i < N; ++i) {
+//        spread[i] = stock1_prices[i] - stock2_prices[i];
+//    }
 
 
     double sum = 0.0;
