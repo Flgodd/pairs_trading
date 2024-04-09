@@ -63,7 +63,8 @@ struct LoopUnroll {
         spread[startIndex] = stock1_prices[startIndex] - stock2_prices[startIndex];
         spread[startIndex + 1] = stock1_prices[startIndex + 1] - stock2_prices[startIndex + 1];
         sum += spread[startIndex] + spread[startIndex+1];
-        sq_sum += (spread[startIndex] * spread[startIndex]) + (spread[startIndex+1] * spread[startIndex+1]);
+        sq_sum += (spread[startIndex] * spread[startIndex]);
+        sq_sum += (spread[startIndex+1] * spread[startIndex+1]);
         LoopUnroll<N, UnrollFactor - 2>::computeSpread(spread, stock1_prices, stock2_prices, startIndex + 2, sum, sq_sum);
     }
 };
