@@ -1,5 +1,5 @@
 mybenchmark: mybenchmark.cc
-				g++ mybenchmark.cc -std=c++20 -mavx -mfma -S -isystem benchmark/include -Lbenchmark/build/src -lbenchmark -lpthread -o mybenchmarkRoll.s
+				g++ mybenchmark.cc -std=c++20 -mavx -mfma -S -isystem benchmark/include -Lbenchmark/build/src -lbenchmark -lpthread -o mybenchmarkRollO.s
 
 #				 g++ mybenchmark.cc -std=c++20 -isystem benchmark/include -Lbenchmark/build/src -lbenchmark -lpthread -o mybenchmark
 
