@@ -5,7 +5,7 @@
 #include <string>
 #include <numeric>
 #include <cmath>
-//#include <immintrin.h>
+#include <immintrin.h>
 #include <iostream>
 #include <array>
 #include <chrono>
