@@ -107,7 +107,13 @@ void pairs_trading_strategy_optimized(const StockPrices& prices) {
     uint32_t d = N;
     uint64_t c = UINT64_C(0xFFFFFFFFFFFFFFFF) / d + 1;
 
+    const int prefetch_distance = 16; // Adjust this value based on your hardware and cache size
+
     for (size_t i = N; i < prices.stock1.size(); ++i) {
+        // Prefetch stock prices for the next iteration
+        __builtin_prefetch(&prices.stock1[i + prefetch_distance], 0, 3);
+        __builtin_prefetch(&prices.stock2[i + prefetch_distance], 0, 3);
+
         double mean = sum / N;
         double stddev = std::sqrt(sq_sum / N - mean * mean);
         double current_spread = prices.stock1[i] - prices.stock2[i];
