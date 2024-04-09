@@ -90,7 +90,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     LoopUnroll<N, N>::computeSpread(spread, stock1_prices, stock2_prices, 0, sum, sq_sum);
 
     uint32_t d = N;
-    uint64_t c = UINT64_C (0 xFFFFFFFFFFFFFFFF ) / d + 1;
+    uint64_t c = UINT64_C (0xFFFFFFFFFFFFFFFF ) / d + 1;
     for (size_t i = N; i < stock1_prices.size(); ++i) {
 
         double mean = sum / N;
