@@ -94,14 +94,9 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
         double mean = sum / N;
-        double variance = sq_sum / N - mean * mean;
-        double stddev = std::sqrt(variance);
-
-        __m256d current_spread_vec = _mm256_sub_pd(_mm256_loadu_pd(&stock1_prices[i]), _mm256_loadu_pd(&stock2_prices[i]));
-        double current_spread = _mm256_cvtsd_f64(current_spread_vec);
-
-        __m256d z_score_vec = _mm256_div_pd(_mm256_sub_pd(current_spread_vec, _mm256_set1_pd(mean)), _mm256_set1_pd(stddev));
-        double z_score = _mm256_cvtsd_f64(z_score_vec);
+        double stddev = std::sqrt(sq_sum / N - mean * mean);
+        double current_spread = stock1_prices[i] - stock2_prices[i];
+        double z_score = (current_spread - mean) / stddev;
 
         double old_value = spread[spread_index];
         spread[spread_index] = current_spread;
@@ -116,14 +111,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
             // No signal
         }
 
-        __m256d old_value_vec = _mm256_set1_pd(old_value);
-        __m256d sum_vec = _mm256_sub_pd(_mm256_set1_pd(sum), old_value_vec);
-        sum_vec = _mm256_add_pd(sum_vec, current_spread_vec);
-        sum = _mm256_cvtsd_f64(sum_vec);
-
-        __m256d sq_sum_vec = _mm256_sub_pd(_mm256_set1_pd(sq_sum), _mm256_mul_pd(old_value_vec, old_value_vec));
-        sq_sum_vec = _mm256_fmadd_pd(current_spread_vec, current_spread_vec, sq_sum_vec);
-        sq_sum = _mm256_cvtsd_f64(sq_sum_vec);
+        sum += -old_value + current_spread;
+        sq_sum += -(old_value * old_value) + (current_spread * current_spread);
 
         spread_index = (spread_index + 1) % N;
     }
