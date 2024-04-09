@@ -91,7 +91,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     uint32_t d = N;
     uint64_t c = UINT64_C (0xFFFFFFFFFFFFFFFF ) / d + 1;
-#pragma omp simd
+
     for (size_t i = N; i < stock1_prices.size(); ++i) {
 
         double mean = sum / N;
