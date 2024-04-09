@@ -5,7 +5,7 @@
 #include <string>
 #include <numeric>
 #include <cmath>
-//#include <immintrin.h>
+#include <immintrin.h>
 #include <iostream>
 #include <array>
 #include <chrono>
@@ -59,12 +59,19 @@ vector<double> readCSV(const string& filename){
 
 template<size_t N, size_t UnrollFactor>
 struct LoopUnroll {
-    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex, double& sum , double& sq_sum) {
-        spread[startIndex] = stock1_prices[startIndex] - stock2_prices[startIndex];
-        spread[startIndex + 1] = stock1_prices[startIndex + 1] - stock2_prices[startIndex + 1];
-        sum += spread[startIndex] + spread[startIndex+1];
-        sq_sum += (spread[startIndex] * spread[startIndex]) + (spread[startIndex+1] * spread[startIndex+1]);
-        LoopUnroll<N, UnrollFactor - 2>::computeSpread(spread, stock1_prices, stock2_prices, startIndex + 2, sum, sq_sum);
+    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex, double& sum, double& sq_sum) {
+        __m256d spread_vec = _mm256_sub_pd(_mm256_loadu_pd(&stock1_prices[startIndex]), _mm256_loadu_pd(&stock2_prices[startIndex]));
+        _mm256_storeu_pd(&spread[startIndex], spread_vec);
+
+        __m256d sum_vec = _mm256_loadu_pd(&sum);
+        sum_vec = _mm256_add_pd(sum_vec, spread_vec);
+        _mm256_storeu_pd(&sum, sum_vec);
+
+        __m256d sq_sum_vec = _mm256_loadu_pd(&sq_sum);
+        sq_sum_vec = _mm256_fmadd_pd(spread_vec, spread_vec, sq_sum_vec);
+        _mm256_storeu_pd(&sq_sum, sq_sum_vec);
+
+        LoopUnroll<N, UnrollFactor - 4>::computeSpread(spread, stock1_prices, stock2_prices, startIndex + 4, sum, sq_sum);
     }
 };
 
@@ -75,50 +82,51 @@ struct LoopUnroll<N, 0> {
     }
 };
 
-
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
-    static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
-
+    static_assert(N % 4 == 0, "N should be a multiple of 4 for AVX instructions");
     std::array<double, N> spread;
     size_t spread_index = 0;
-
-
     double sum = 0.0;
     double sq_sum = 0.0;
 
     LoopUnroll<N, N>::computeSpread(spread, stock1_prices, stock2_prices, 0, sum, sq_sum);
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
-
         double mean = sum / N;
-        double stddev = std::sqrt(sq_sum / N - mean * mean);
-        double current_spread = stock1_prices[i] - stock2_prices[i];
-        double z_score = (current_spread - mean) / stddev;
+        double variance = sq_sum / N - mean * mean;
+        double stddev = std::sqrt(variance);
+
+        __m256d current_spread_vec = _mm256_sub_pd(_mm256_loadu_pd(&stock1_prices[i]), _mm256_loadu_pd(&stock2_prices[i]));
+        double current_spread = _mm256_cvtsd_f64(current_spread_vec);
+
+        __m256d z_score_vec = _mm256_div_pd(_mm256_sub_pd(current_spread_vec, _mm256_set1_pd(mean)), _mm256_set1_pd(stddev));
+        double z_score = _mm256_cvtsd_f64(z_score_vec);
 
         double old_value = spread[spread_index];
-
-
         spread[spread_index] = current_spread;
+
         if (z_score > 1.0) {
-            //check[0]++;  // Long and Short
+            // Long and Short
         } else if (z_score < -1.0) {
-            //check[1]++;  // Short and Long
+            // Short and Long
         } else if (std::abs(z_score) < 0.8) {
-            //check[2]++;  // Close positions
+            // Close positions
         } else {
-            //check[3]++;  // No signal
+            // No signal
         }
 
+        __m256d old_value_vec = _mm256_set1_pd(old_value);
+        __m256d sum_vec = _mm256_sub_pd(_mm256_set1_pd(sum), old_value_vec);
+        sum_vec = _mm256_add_pd(sum_vec, current_spread_vec);
+        sum = _mm256_cvtsd_f64(sum_vec);
 
-        sum += -old_value + current_spread;
-        sq_sum += -(old_value * old_value) + (current_spread * current_spread);
-
+        __m256d sq_sum_vec = _mm256_sub_pd(_mm256_set1_pd(sq_sum), _mm256_mul_pd(old_value_vec, old_value_vec));
+        sq_sum_vec = _mm256_fmadd_pd(current_spread_vec, current_spread_vec, sq_sum_vec);
+        sq_sum = _mm256_cvtsd_f64(sq_sum_vec);
 
         spread_index = (spread_index + 1) % N;
     }
-    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
-
 }
 
 

@@ -7,26 +7,12 @@
 #include <cmath>
 //#include <immintrin.h>
 #include <iostream>
-#include <vector>
-#include <deque>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <numeric>
-#include <cmath>
-#include <iostream>
 #include <array>
-#include <experimental/simd>
-//#include <experimental/execution_policy>
 #include <chrono>
-//#include <experimental/numeric>
-#include <arm_neon.h>
-#include <array>
+
 
 
 using namespace std;
-
-namespace simd = std::experimental;
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -71,21 +57,23 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
-template<size_t I, size_t N, typename ArrayType>
-inline void spreadC(ArrayType& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
-    if constexpr (I < N) {
-        spread[I] = stock1_prices[I] - stock2_prices[I];
-        spreadC<I + 1, N>(spread, stock1_prices, stock2_prices);
+template<size_t N, size_t UnrollFactor>
+struct LoopUnroll {
+    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex, double& sum , double& sq_sum) {
+        spread[startIndex] = stock1_prices[startIndex] - stock2_prices[startIndex];
+        spread[startIndex + 1] = stock1_prices[startIndex + 1] - stock2_prices[startIndex + 1];
+        sum += spread[startIndex] + spread[startIndex+1];
+        sq_sum += (spread[startIndex] * spread[startIndex]) + (spread[startIndex+1] * spread[startIndex+1]);
+        LoopUnroll<N, UnrollFactor - 2>::computeSpread(spread, stock1_prices, stock2_prices, startIndex + 2, sum, sq_sum);
     }
-}
-template<size_t I, size_t N>
-inline void slide(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, double& sum, double& sq_sum) {
-    if constexpr (I < N) {
-        sum += stock1_prices[I] - stock2_prices[I];
-        sq_sum += (stock1_prices[I] - stock2_prices[I]) * (stock1_prices[I] - stock2_prices[I]) ;
-        slide<I + 1, N>(stock1_prices, stock2_prices, sum, sq_sum);
+};
+
+template<size_t N>
+struct LoopUnroll<N, 0> {
+    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex, double& sum, double& sq_sum) {
+        // Base case, do nothing
     }
-}
+};
 
 
 template<size_t N>
@@ -93,18 +81,13 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
     std::array<double, N> spread;
-    vector<int> check(4, 0);
     size_t spread_index = 0;
-
-
-    spreadC<0, N>(spread, stock1_prices, stock2_prices);
 
 
     double sum = 0.0;
     double sq_sum = 0.0;
 
-
-    slide<0, N>(stock1_prices, stock2_prices, sum, sq_sum);
+    LoopUnroll<N, N>::computeSpread(spread, stock1_prices, stock2_prices, 0, sum, sq_sum);
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
 
@@ -118,13 +101,13 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
         spread[spread_index] = current_spread;
         if (z_score > 1.0) {
-            check[0]++;  // Long and Short
+            //check[0]++;  // Long and Short
         } else if (z_score < -1.0) {
-            check[1]++;  // Short and Long
+            //check[1]++;  // Short and Long
         } else if (std::abs(z_score) < 0.8) {
-            check[2]++;  // Close positions
+            //check[2]++;  // Close positions
         } else {
-            check[3]++;  // No signal
+            //check[3]++;  // No signal
         }
 
 
@@ -134,7 +117,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
         spread_index = (spread_index + 1) % N;
     }
-    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
