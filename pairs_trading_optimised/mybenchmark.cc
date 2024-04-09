@@ -70,7 +70,7 @@ struct LoopUnroll {
 
 template<size_t N>
 struct LoopUnroll<N, 0> {
-    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex, sum, sq_sum) {
+    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex, double sum, double sq_sum) {
         // Base case, do nothing
     }
 };
