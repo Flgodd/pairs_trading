@@ -67,11 +67,21 @@ struct LoopUnroll {
     static void computeSpread(std::array<double, N>& spread, const vector<double>& stock1_prices,
                               const vector<double>& stock2_prices, size_t startIndex,
                               double& sum, double& sq_sum) {
-        spread[startIndex] = stock1_prices[startIndex] - stock2_prices[startIndex];
-        spread[startIndex + 1] = stock1_prices[startIndex + 1] - stock2_prices[startIndex + 1];
-        sum += spread[startIndex] + spread[startIndex + 1];
-        sq_sum += (spread[startIndex] * spread[startIndex]) + (spread[startIndex + 1] * spread[startIndex + 1]);
-        LoopUnroll<N, UnrollFactor - 2>::computeSpread(spread, stock1_prices, stock2_prices, startIndex + 2, sum, sq_sum);
+        __m256d stock1_vec = _mm256_loadu_pd(&stock1_prices[startIndex]);
+        __m256d stock2_vec = _mm256_loadu_pd(&stock2_prices[startIndex]);
+        __m256d spread_vec = _mm256_sub_pd(stock1_vec, stock2_vec);
+        _mm256_storeu_pd(&spread[startIndex], spread_vec);
+
+        __m256d sum_vec = _mm256_loadu_pd(&sum);
+        __m256d sq_sum_vec = _mm256_loadu_pd(&sq_sum);
+
+        sum_vec = _mm256_fmadd_pd(spread_vec, _mm256_set1_pd(1.0), sum_vec);
+        sq_sum_vec = _mm256_fmadd_pd(spread_vec, spread_vec, sq_sum_vec);
+
+        _mm256_storeu_pd(&sum, sum_vec);
+        _mm256_storeu_pd(&sq_sum, sq_sum_vec);
+
+        LoopUnroll<N, UnrollFactor - 4>::computeSpread(spread, stock1_prices, stock2_prices, startIndex + 4, sum, sq_sum);
     }
 };
 
@@ -84,10 +94,9 @@ struct LoopUnroll<N, 0> {
     }
 };
 
-
 template<size_t N>
 void pairs_trading_strategy_optimized(const StockPrices& prices) {
-    static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
+    static_assert(N % 4 == 0, "N should be a multiple of 4 for AVX instructions");
     std::array<double, N> spread;
     size_t spread_index = 0;
     double sum = 0.0;
@@ -117,7 +126,7 @@ void pairs_trading_strategy_optimized(const StockPrices& prices) {
         }
 
         sum += -old_value + current_spread;
-        sq_sum += -(old_value * old_value) + (current_spread * current_spread);
+        sq_sum = std::fma(-old_value, -old_value, std::fma(current_spread, current_spread, sq_sum));
 
         uint64_t lowbits = c * (spread_index + 1);
         spread_index = ((__uint128_t)lowbits * d) >> 64;
