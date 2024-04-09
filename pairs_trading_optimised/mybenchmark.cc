@@ -91,12 +91,12 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     double sum = 0.0;
     double sq_sum = 0.0;
 
-//    for (size_t i = 0; i < N; ++i) {
-//        spread[i] = stock1_prices[i] - stock2_prices[i];
-//        sum += spread[i];
-//        sq_sum += spread[i] * spread[i];
-//    }
-    LoopUnroll<N, N>::computeSpread(spread, stock1_prices, stock2_prices, 0, sum, sq_sum);
+    for (size_t i = 0; i < N; ++i) {
+        spread[i] = stock1_prices[i] - stock2_prices[i];
+        sum += spread[i];
+        sq_sum += spread[i] * spread[i];
+    }
+    //LoopUnroll<N, N>::computeSpread(spread, stock1_prices, stock2_prices, 0, sum, sq_sum);
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
 
