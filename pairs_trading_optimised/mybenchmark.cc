@@ -64,20 +64,22 @@ StockPrices readCSV(const string& filename1, const string& filename2) {
 
 template<size_t N, size_t UnrollFactor>
 struct LoopUnroll {
-    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex, double& sum , double& sq_sum) {
-        const double curr_spread = stock1_prices[startIndex] - stock2_prices[startIndex];
-        const double next_spread = stock1_prices[startIndex+1] - stock2_prices[startIndex+1];
-        spread[startIndex] = curr_spread;
-        spread[startIndex + 1] = curr_spread;
-        sum += curr_spread + next_spread;
-        sq_sum += (curr_spread * curr_spread) + (next_spread * next_spread);
+    static void computeSpread(std::array<double, N>& spread, const vector<double>& stock1_prices,
+                              const vector<double>& stock2_prices, size_t startIndex,
+                              double& sum, double& sq_sum) {
+        spread[startIndex] = stock1_prices[startIndex] - stock2_prices[startIndex];
+        spread[startIndex + 1] = stock1_prices[startIndex + 1] - stock2_prices[startIndex + 1];
+        sum += spread[startIndex] + spread[startIndex + 1];
+        sq_sum += (spread[startIndex] * spread[startIndex]) + (spread[startIndex + 1] * spread[startIndex + 1]);
         LoopUnroll<N, UnrollFactor - 2>::computeSpread(spread, stock1_prices, stock2_prices, startIndex + 2, sum, sq_sum);
     }
 };
 
 template<size_t N>
 struct LoopUnroll<N, 0> {
-    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex, double& sum, double& sq_sum) {
+    static void computeSpread(std::array<double, N>& spread, const vector<double>& stock1_prices,
+                              const vector<double>& stock2_prices, size_t startIndex,
+                              double& sum, double& sq_sum) {
         // Base case, do nothing
     }
 };
