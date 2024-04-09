@@ -5,7 +5,7 @@
 #include <string>
 #include <numeric>
 #include <cmath>
-//#include <immintrin.h>
+#include <immintrin.h>
 #include <iostream>
 #include <array>
 #include <chrono>
@@ -102,13 +102,13 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
         spread[spread_index] = current_spread;
         if (z_score > 1.0) {
-            //check[0]++;  // Long and Short
+        // Long and Short
         } else if (z_score < -1.0) {
-            //check[1]++;  // Short and Long
+          // Short and Long
         } else if (std::abs(z_score) < 0.8) {
-            //check[2]++;  // Close positions
+         // Close positions
         } else {
-            //check[3]++;  // No signal
+            // No signal
         }
 
 
@@ -118,7 +118,6 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         uint64_t lowbits = c * (spread_index + 1);
         spread_index = (( __uint128_t ) lowbits * d) >> 64;
     }
-    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
