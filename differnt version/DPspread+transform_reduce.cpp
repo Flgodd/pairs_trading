@@ -7,28 +7,13 @@
 #include <cmath>
 //#include <immintrin.h>'
 #include <iostream>
-#include <vector>
-#include <deque>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <numeric>
-#include <cmath>
-#include <iostream>
-#include <array>
-#include <experimental/simd>
-//#include <experimental/execution_policy>
 #include <chrono>
-//#include <experimental/numeric>
-#include <arm_neon.h>
 #include <array>
 #include <numeric>
 #include <execution>
 
 
 using namespace std;
-
-namespace simd = std::experimental;
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;

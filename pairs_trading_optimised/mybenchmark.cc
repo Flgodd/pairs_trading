@@ -9,10 +9,11 @@
 #include <iostream>
 #include <chrono>
 #include <array>
+#include <numeric>
+#include <execution>
 
 
 using namespace std;
-
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -63,7 +64,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
     std::array<double, 1256> spread;
-    //vector<int> check(4, 0);
+    vector<int> check(4, 0);
 
     for(size_t i = 0; i < 1256; ++i) {
         spread[i] = stock1_prices[i] - stock2_prices[i];
@@ -73,13 +74,18 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
         int start = i-N;
 
-        double sum = spread[start]+spread[start+1]+spread[start+2]+spread[start+3]
+        double sum = transform_reduce(std::execution::par, spread.begin() + start, spread.begin() + start + N, 0.0,
+                                      plus(), [](double a) { return a; });
+        double sq_sum = transform_reduce(std::execution::par, spread.begin() + start, spread.begin() + start + N, 0.0, plus(), [](double x) { return x * x; });
+
+        /*double sum = spread[start]+spread[start+1]+spread[start+2]+spread[start+3]
                      + spread[start+4]+spread[start+5]+spread[start+6]+spread[start+7];
 
         double sq_sum = (spread[start]*spread[start]) + (spread[start+1]*spread[start+1])
                         + (spread[start+2]*spread[start+2]) + (spread[start+3]*spread[start+3])
                         + (spread[start+4]*spread[start+4]) + (spread[start+5]*spread[start+5])
-                        + (spread[start+6]*spread[start+6]) + (spread[start+7]*spread[start+7]);
+                        + (spread[start+6]*spread[start+6]) + (spread[start+7]*spread[start+7]);*/
+
 
         double mean = sum / N;
         double stddev = std::sqrt(sq_sum / N - mean * mean);
@@ -88,17 +94,17 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
 
         if (z_score > 1.0) {
-            //check[0]++;  // Long and Short
+            check[0]++;  // Long and Short
         } else if (z_score < -1.0) {
-            //check[1]++;  // Short and Long
+            check[1]++;  // Short and Long
         } else if (std::abs(z_score) < 0.8) {
-            //check[2]++;  // Close positions
+            check[2]++;  // Close positions
         } else {
-            //check[3]++;  // No signal
+            check[3]++;  // No signal
         }
 
     }
-    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
