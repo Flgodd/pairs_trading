@@ -110,9 +110,9 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
         // Perform trading actions based on the comparison results
         // ...
-        if(long_short_mask)check[0]++;
-        else if(short_long_mask)check[1]++;
-        else if(close_positions_mask)check[2]++;
+        if(long_short_mask != 0)check[0]++;
+        else if(short_long_mask != 0)check[1]++;
+        else if(close_positions_mask != 0)check[2]++;
         else check[3]++;
 
     }
