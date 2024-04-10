@@ -65,11 +65,14 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     std::array<double, 1256> spread;
     const size_t size = stock1_prices.size();
 
-    for (size_t i = 0; i < 1256; ++i) {
-        spread[i] = stock1_prices[i] - stock2_prices[i];
+    for (size_t i = 0; i < size; i += 4) {
+        __m256d stock1_vec = _mm256_loadu_pd(&stock1_prices[i]);
+        __m256d stock2_vec = _mm256_loadu_pd(&stock2_prices[i]);
+        __m256d spread_vec = _mm256_sub_pd(stock1_vec, stock2_vec);
+        _mm256_storeu_pd(&spread[i], spread_vec);
     }
 
-    vector<int>check(4);
+    //vector<int>check(4);
 
     const __m256d one = _mm256_set1_pd(1.0);
     const __m256d minus_one = _mm256_set1_pd(-1.0);
