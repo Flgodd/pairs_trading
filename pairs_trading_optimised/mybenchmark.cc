@@ -13,7 +13,7 @@
 #include <thread>
 
 int n = std::thread::hardware_concurrency()/2;
-#define NUM_THREADS n;
+#define NUM_THREADS 256;
 
 
 using namespace std;
