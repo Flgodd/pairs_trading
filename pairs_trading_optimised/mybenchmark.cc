@@ -11,7 +11,7 @@
 #include <array>
 #include <thread>
 
-#define NUM_THREADS std::thread::hardware_concurrency()
+#define NUM_THREADS 1256
 
 
 using namespace std;
