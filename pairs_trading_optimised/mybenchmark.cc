@@ -11,7 +11,7 @@
 #include <array>
 #include <thread>
 
-#define NUM_THREADS 4
+#define NUM_THREADS std::thread::hardware_concurrency()
 
 
 using namespace std;
