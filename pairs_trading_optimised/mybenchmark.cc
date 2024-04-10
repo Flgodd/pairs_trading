@@ -72,7 +72,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         _mm256_storeu_pd(&spread[i], spread_vec);
     }
 
-    vector<int>check(4);
+    //vector<int>check(4);
 
     const __m256d one = _mm256_set1_pd(1.0);
     const __m256d minus_one = _mm256_set1_pd(-1.0);
