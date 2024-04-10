@@ -72,7 +72,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         _mm256_storeu_pd(&spread[i], spread_vec);
     }
 
-    //vector<int>check(4);
+    vector<int>check(4);
 
     const __m256d one = _mm256_set1_pd(1.0);
     const __m256d minus_one = _mm256_set1_pd(-1.0);
@@ -116,13 +116,13 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         int close_positions_mask_bits = _mm256_movemask_pd(close_positions_mask);
         // Perform trading actions based on the comparison results
         // ...
-        if(long_short_mask_bits != 0);//check[0]++;
-        else if(short_long_mask_bits != 0);//check[1]++;
-        else if(close_positions_mask_bits != 0);//check[2]++;
-        else ;//check[3]++;
+        if(long_short_mask_bits != 0);check[0]++;
+        else if(short_long_mask_bits != 0);check[1]++;
+        else if(close_positions_mask_bits != 0);check[2]++;
+        else ;check[3]++;
 
     }
-   // cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 }
 
 
