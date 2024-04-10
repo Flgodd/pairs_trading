@@ -7,14 +7,6 @@
 #include <cmath>
 #include <immintrin.h>
 #include <iostream>
-#include <vector>
-#include <deque>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <numeric>
-#include <cmath>
-#include <iostream>
 #include <array>  // Add this line
 
 using namespace std;
