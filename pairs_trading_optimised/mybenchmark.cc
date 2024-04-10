@@ -9,7 +9,6 @@
 #include <iostream>
 #include <array>
 #include <chrono>
-#include <omp.h>
 
 
 
