@@ -89,6 +89,8 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
+    int num_threads = std::thread::hardware_concurrency();
+    cout<<num_threads<<endl;
     std::array<double, 1256> spread_sum;
     std::array<double, 1256> spread_sq_sum;
     vector<int> check(4, 0);
