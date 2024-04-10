@@ -71,15 +71,24 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
 
-        int start = i-N;
+        __m256d sum_vec = _mm256_setzero_pd();
+        __m256d sq_sum_vec = _mm256_setzero_pd();
 
-        double sum = spread[start]+spread[start+1]+spread[start+2]+spread[start+3]
-                     + spread[start+4]+spread[start+5]+spread[start+6]+spread[start+7];
+        for(size_t j = i-N; j < i; j += 4) {
+            __m256d spread_vec = _mm256_loadu_pd(&spread[j]);
+            sum_vec = _mm256_add_pd(sum_vec, spread_vec);
+            sq_sum_vec = _mm256_fmadd_pd(spread_vec, spread_vec, sq_sum_vec);
+            //sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
+        }
 
-        double sq_sum = (spread[start]*spread[start]) + (spread[start+1]*spread[start+1])
-                        + (spread[start+2]*spread[start+2]) + (spread[start+3]*spread[start+3])
-                        + (spread[start+4]*spread[start+4]) + (spread[start+5]*spread[start+5])
-                        + (spread[start+6]*spread[start+6]) + (spread[start+7]*spread[start+7]);
+        __m256d temp1 = _mm256_hadd_pd(sum_vec, sum_vec);
+        __m256d sum_vec_total = _mm256_add_pd(temp1, _mm256_permute2f128_pd(temp1, temp1, 0x1));
+
+        __m256d temp2 = _mm256_hadd_pd(sq_sum_vec, sq_sum_vec);
+        __m256d sq_sum_vec_total = _mm256_add_pd(temp2, _mm256_permute2f128_pd(temp2, temp2, 0x1));
+
+        double sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sum_vec_total));
+        double sq_sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sq_sum_vec_total));
 
         double mean = sum / N;
         double stddev = std::sqrt(sq_sum / N - mean * mean);
