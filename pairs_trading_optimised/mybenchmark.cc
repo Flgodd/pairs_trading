@@ -11,7 +11,7 @@
 #include <array>
 #include <thread>
 
-#define NUM_THREADS 1256
+#define NUM_THREADS 100
 
 
 using namespace std;
