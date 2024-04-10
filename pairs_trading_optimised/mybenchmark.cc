@@ -112,7 +112,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         th.join();
     }
 
-    for (int i = 1; i < NUM_THREADS; i++) {
+    for(int i = 1; i < NUM_THREADS; i++) {
         for (int j = i * blockSize; j < (i + 1) * blockSize; j++) {
             spread_sum[j] += spread_sum[i*blockSize -1];
             spread_sq_sum[j] += spread_sq_sum[i*blockSize -1];
