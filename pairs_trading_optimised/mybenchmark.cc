@@ -69,6 +69,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         spread[i] = stock1_prices[i] - stock2_prices[i];
     }
 
+    vector<int>check(4);
+
     const __m256d one = _mm256_set1_pd(1.0);
     const __m256d minus_one = _mm256_set1_pd(-1.0);
     const __m256d zero_point_eight = _mm256_set1_pd(0.8);
@@ -108,7 +110,13 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
         // Perform trading actions based on the comparison results
         // ...
+        if(long_short_mask)check[0]++;
+        else if(short_long_mask)check[1]++;
+        else if(close_positions_mask)check[2]++;
+        else check[3]++
+
     }
+    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 }
 
 
