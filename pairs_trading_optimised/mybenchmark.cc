@@ -12,7 +12,8 @@
 #include <array>
 #include <thread>
 
-#define NUM_THREADS std::thread::hardware_concurrency()/2;
+int n = std::thread::hardware_concurrency()/2;
+#define NUM_THREADS n;
 
 
 using namespace std;
