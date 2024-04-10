@@ -64,7 +64,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
     std::array<double, 1256> spread;
-    vector<int> check(4, 0);
+    //vector<int> check(4, 0);
 
     for(size_t i = 0; i < 1256; ++i) {
         spread[i] = stock1_prices[i] - stock2_prices[i];
