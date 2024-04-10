@@ -7,17 +7,14 @@
 #include <cmath>
 //#include <immintrin.h>'
 #include <iostream>
-#include <array>
 #include <chrono>
 #include <array>
 #include <thread>
 
-
-#define NUM_THREADS 4;
+#define NUM_THREADS 4
 
 
 using namespace std;
-
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -78,7 +75,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
     int num_threads = std::thread::hardware_concurrency();
-
+    cout<<num_threads<<endl;
     std::array<double, 1256> spread_sum;
     std::array<double, 1256> spread_sq_sum;
     vector<int> check(4, 0);
@@ -112,7 +109,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         th.join();
     }
 
-    for(int i = 1; i < NUM_THREADS; i++) {
+    for (int i = 1; i < NUM_THREADS; i++) {
         for (int j = i * blockSize; j < (i + 1) * blockSize; j++) {
             spread_sum[j] += spread_sum[i*blockSize -1];
             spread_sq_sum[j] += spread_sq_sum[i*blockSize -1];
