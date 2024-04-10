@@ -113,10 +113,10 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         int close_positions_mask_bits = _mm256_movemask_pd(close_positions_mask);
         // Perform trading actions based on the comparison results
         // ...
-        if(long_short_mask_bits != 0)//check[0]++;
-        else if(short_long_mask_bits != 0)//check[1]++;
-        else if(close_positions_mask_bits != 0)//check[2]++;
-        else //check[3]++;
+        if(long_short_mask_bits != 0);//check[0]++;
+        else if(short_long_mask_bits != 0);//check[1]++;
+        else if(close_positions_mask_bits != 0);//check[2]++;
+        else ;//check[3]++;
 
     }
    // cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
