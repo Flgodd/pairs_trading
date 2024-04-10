@@ -113,7 +113,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         if(long_short_mask)check[0]++;
         else if(short_long_mask)check[1]++;
         else if(close_positions_mask)check[2]++;
-        else check[3]++
+        else check[3]++;
 
     }
     cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
