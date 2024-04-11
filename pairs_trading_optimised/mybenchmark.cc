@@ -93,22 +93,20 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     };
 
     int blockSize = stock1_prices.size() / NUM_THREADS;
-    int remainingElements = stock1_prices.size() % NUM_THREADS;
-
-    if (remainingElements != 0) {
-        blockSize = stock1_prices.size() / (NUM_THREADS - 1);
-        remainingElements = stock1_prices.size() % (NUM_THREADS - 1);
-    }
-
-    cout << blockSize << endl;
-    cout << remainingElements << endl;
+    int remainingSize = stock1_prices.size() % NUM_THREADS;
 
     for (int i = 0; i < NUM_THREADS; i++) {
         int start = i * blockSize;
-        int end = (i == NUM_THREADS - 1) ? stock1_prices.size() - 1 : (i + 1) * blockSize - 1;
+        int end = (i + 1) * blockSize - 1;
+
+        if (i == NUM_THREADS - 1) {
+            end += remainingSize;
+        }
+
         const double current_spread = stock1_prices[start] - stock2_prices[start];
         spread_sum[start] = current_spread;
         spread_sq_sum[start] = current_spread * current_spread;
+
         threads.push_back(thread(worker, start, end));
     }
 
@@ -116,29 +114,13 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         th.join();
     }
 
-    int dist = NUM_THREADS;
-    if (remainingElements != 0)
-        dist--;
+    for (int i = 1; i < NUM_THREADS; i++) {
+        int start = i * blockSize;
+        int end = (i == NUM_THREADS - 1) ? stock1_prices.size() - 1 : (i + 1) * blockSize - 1;
 
-    cout << dist << endl;
-
-    for (int i = 1; i < dist; i++) {
-        spread_sum[i * blockSize] += spread_sum[(i - 1) * blockSize + blockSize - 1];
-        spread_sq_sum[i * blockSize] += spread_sq_sum[(i - 1) * blockSize + blockSize - 1];
-        for (int j = i * blockSize + 1; j < (i + 1) * blockSize; j++) {
-            spread_sum[j] += spread_sum[i * blockSize];
-            spread_sq_sum[j] += spread_sq_sum[i * blockSize];
-        }
-    }
-
-    if (remainingElements != 0) {
-        int lastThreadStart = (NUM_THREADS - 1) * blockSize;
-        cout << lastThreadStart << endl;
-        spread_sum[lastThreadStart] += spread_sum[lastThreadStart - 1];
-        spread_sq_sum[lastThreadStart] += spread_sq_sum[lastThreadStart - 1];
-        for (int i = lastThreadStart + 1; i < stock1_prices.size(); i++) {
-            spread_sum[i] += spread_sum[i - 1];
-            spread_sq_sum[i] += spread_sq_sum[i - 1];
+        for (int j = start; j <= end; j++) {
+            spread_sum[j] += spread_sum[start - 1];
+            spread_sq_sum[j] += spread_sq_sum[start - 1];
         }
     }
 
