@@ -117,6 +117,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     int dist = NUM_THREADS;
     if(remainingElements != 0) dist--;
+    cout<<dist<<endl;
     for (int i = 1; i < dist; i++) {
         for (int j = i * blockSize; j < (i + 1) * blockSize; j++) {
             spread_sum[j] += spread_sum[i * blockSize - 1];
