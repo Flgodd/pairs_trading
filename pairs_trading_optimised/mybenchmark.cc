@@ -11,7 +11,7 @@
 #include <array>
 #include <thread>
 
-#define NUM_THREADS 100
+#define NUM_THREADS 8
 
 
 using namespace std;
@@ -99,14 +99,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     int end = blockSize-1;
 
     for (int i = 0; i < NUM_THREADS; i++) {
-        /*int start = i * blockSize;
-        int end = (i + 1) * blockSize - 1;*/
-
-//        if (i == NUM_THREADS - 1) {
-//            end += remainingSize;
-//        }
         if(i < remainingSize)end++;
-        //cout<<"start:"<<start<<"end:"<<end<<endl;
         const double current_spread = stock1_prices[start] - stock2_prices[start];
         spread_sum[start] = current_spread;
         spread_sq_sum[start] = current_spread * current_spread;
@@ -124,17 +117,14 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     start = (remainingSize == 0) ? blockSize : blockSize+1;
     end = start+blockSize-1;;
     for (int i = 1; i < NUM_THREADS; i++) {
-        //int start = i * blockSize;
-        //int end = (i == NUM_THREADS - 1) ? stock1_prices.size() - 1 : (i + 1) * blockSize - 1;
+
         if(i < remainingSize)end++;
-        cout<<"start:"<<start<<"end:"<<end<<endl;
         for (int j = start; j <= end; j++) {
             spread_sum[j] += spread_sum[start - 1];
             spread_sq_sum[j] += spread_sq_sum[start - 1];
         }
         start = end + 1;
         end = start+blockSize-1;
-        //end = i < remainingSize ? start + blockSize : start + blockSize-1;
     }
 
     const double mean = (spread_sum[N-1])/ N;
