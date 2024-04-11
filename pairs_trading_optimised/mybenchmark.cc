@@ -82,7 +82,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     vector<thread> threads;
 
     spread_sum[0] = stock1_prices[0] - stock2_prices[0];
-    spread_sq_sum[0] = (stock1_prices[0] - stock2_prices[0])*(stock1_prices[0] - stock2_prices[0]);
+    spread_sq_sum[0] = (stock1_prices[0] - stock2_prices[0]) * (stock1_prices[0] - stock2_prices[0]);
 
     auto worker = [&](size_t start, size_t end) {
         for (int i = start + 1; i <= end; i++) {
@@ -92,17 +92,18 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         }
     };
 
-
     int blockSize = stock1_prices.size() / NUM_THREADS;
-    for(int i = 0; i<NUM_THREADS; i++){
-        int start = i*blockSize;
+    int remainingElements = stock1_prices.size() % NUM_THREADS;
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        int start = i * blockSize;
+        int end = (i == NUM_THREADS - 1) ? stock1_prices.size() - 1 : (i + 1) * blockSize - 1;
+
         const double current_spread = stock1_prices[start] - stock2_prices[start];
         spread_sum[start] = current_spread;
-        spread_sq_sum[start] = current_spread*current_spread;
-        int end = (i+1) * blockSize -1;
+        spread_sq_sum[start] = current_spread * current_spread;
 
         threads.push_back(thread(worker, start, end));
-
     }
 
     for (auto& th : threads) {
@@ -111,8 +112,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     for (int i = 1; i < NUM_THREADS; i++) {
         for (int j = i * blockSize; j < (i + 1) * blockSize; j++) {
-            spread_sum[j] += spread_sum[i*blockSize -1];
-            spread_sq_sum[j] += spread_sq_sum[i*blockSize -1];
+            spread_sum[j] += spread_sum[i * blockSize - 1];
+            spread_sq_sum[j] += spread_sq_sum[i * blockSize - 1];
         }
     }
 
