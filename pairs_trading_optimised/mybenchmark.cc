@@ -105,6 +105,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 //        if (i == NUM_THREADS - 1) {
 //            end += remainingSize;
 //        }
+        if(i < remainingSize)end++;
         cout<<"start:"<<start<<"end:"<<end<<endl;
         const double current_spread = stock1_prices[start] - stock2_prices[start];
         spread_sum[start] = current_spread;
@@ -113,8 +114,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         threads.push_back(thread(worker, start, end));
 
         start = end +1;
-        if(i < remainingSize)end = start + blockSize;
-        else end = start + blockSize -1;
+        end = start+blockSize-1;
     }
 
     for (auto& th : threads) {
