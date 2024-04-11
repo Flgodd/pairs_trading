@@ -120,6 +120,14 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         }
     }
 
+    if (remainingElements != 0) {
+        int lastThreadStart = (NUM_THREADS - 1) * blockSize;
+        for (int i = lastThreadStart + 1; i < stock1_prices.size(); i++) {
+            spread_sum[i] += spread_sum[lastThreadStart];
+            spread_sq_sum[i] += spread_sq_sum[lastThreadStart];
+        }
+    }
+
     const double mean = (spread_sum[N-1])/ N;
     const double stddev = std::sqrt((spread_sq_sum[N-1])/ N - mean * mean);
     const double current_spread = stock1_prices[N] - stock2_prices[N];
