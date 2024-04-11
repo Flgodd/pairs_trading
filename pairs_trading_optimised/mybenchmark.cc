@@ -96,6 +96,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     int remainingElements = stock1_prices.size() % NUM_THREADS;
     if(remainingElements != 0){
         blockSize = stock1_prices.size() / (NUM_THREADS-1);
+        remainingElements = stock1_prices.size() % (NUM_THREADS-1);
     }
     cout<<blockSize<<endl;
     cout<<remainingElements<<endl;
