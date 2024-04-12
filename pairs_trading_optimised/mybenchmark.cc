@@ -10,6 +10,7 @@
 #include <chrono>
 #include <array>
 #include <thread>
+#include <omp.h>
 
 #define NUM_THREADS 256
 
@@ -143,7 +144,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         check[3]++;  // No signal
     }
 
-
+#pragma omp parallel for
     for (size_t i = N+1; i < stock1_prices.size(); ++i) {
 
         const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;
@@ -153,17 +154,17 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
 
         if (z_score > 1.0) {
-            check[0]++;  // Long and Short
+            //check[0]++;  // Long and Short
         } else if (z_score < -1.0) {
-            check[1]++;  // Short and Long
+            //check[1]++;  // Short and Long
         } else if (std::abs(z_score) < 0.8) {
-            check[2]++;  // Close positions
+            //check[2]++;  // Close positions
         } else {
-            check[3]++;  // No signal
+            //check[3]++;  // No signal
         }
 
     }
-    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
