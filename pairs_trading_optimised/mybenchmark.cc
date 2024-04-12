@@ -151,6 +151,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     vector<double> spread_sq_sum(9986);
     //vector<int> check(4, 0);
 
+    cout<<NUM_THREADS<<endl;
+
 #pragma omp parallel for
     for(int i = 0; i<stock1_prices.size(); i++){
         const double current_spread = stock1_prices[i] - stock2_prices[i];
