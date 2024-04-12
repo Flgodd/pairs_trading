@@ -7,20 +7,7 @@
 #include <cmath>
 //#include <immintrin.h>'
 #include <iostream>
-#include <vector>
-#include <deque>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <numeric>
-#include <cmath>
-#include <iostream>
-#include <array>
-//#include <experimental/simd>
-//#include <experimental/execution_policy>
 #include <chrono>
-//#include <experimental/numeric>
-//#include <arm_neon.h>
 #include <array>
 #include <thread>
 
@@ -218,7 +205,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     size_t size = stock1_prices.size();
     vector<double> spread_sum(size);
     vector<double> spread_sq_sum(size);
-    vector<int> check(4, 0);
+    //vector<int> check(4, 0);
 
     // Parallelize the spread calculation
     size_t num_threads = NUM_THREADS;

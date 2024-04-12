@@ -7,13 +7,12 @@
 #include <cmath>
 //#include <immintrin.h>'
 #include <iostream>
-#include <array>
 #include <chrono>
+#include <array>
 #include <thread>
-#include <omp.h>
 
 
-#define NUM_THREADS omp_get_max_threads()
+#define NUM_THREADS 8
 
 
 using namespace std;
@@ -29,8 +28,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "Intel.csv";
-    string ms_file = "AMD.csv";
+    string gs_file = "GS.csv";
+    string ms_file = "MS.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -54,7 +53,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[4]);
+        double adjClose = std::stod(row[5]);
         prices.push_back(adjClose);
     }
 
@@ -62,83 +61,139 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
-void parallelUpSweep(std::vector<double>& x) {
-    const int n = x.size();
-    const int maxDepth = std::log2(n);
+void parallelUpSweep(vector<double>& x) {
+    int n = x.size();
+    int numThreads = NUM_THREADS;
+    int maxDepth = std::log2(n);
+    std::vector<std::thread> threads;
 
     for (int d = 0; d < maxDepth; ++d) {
-        const int powerOfTwoDPlus1 = 1 << (d + 1);
+        threads.clear();
+        int powerOfTwoDPlus1 = 1 << (d + 1);
 
-#pragma omp parallel for
-        for (int k = 0; k < n; k += powerOfTwoDPlus1) {
-            const int idx1 = k + (1 << d) - 1;
-            const int idx2 = k + powerOfTwoDPlus1 - 1;
-            if (idx2 < n) {
-                x[idx2] += x[idx1];
-            }
+        for (int i = 0; i < numThreads; ++i) {
+            int start = i * n / numThreads;
+            int end = std::min(n, (i + 1) * n / numThreads);
+
+            start = (start / powerOfTwoDPlus1) * powerOfTwoDPlus1;
+            end = ((end + powerOfTwoDPlus1 - 1) / powerOfTwoDPlus1) * powerOfTwoDPlus1;
+
+            threads.emplace_back([=, &x]() {
+                for (int k = start; k < end; k += powerOfTwoDPlus1) {
+                    double idx1 = k + (1 << d) - 1;
+                    double idx2 = k + powerOfTwoDPlus1 - 1;
+                    if (idx2 < n) {
+                        x[idx2] = x[idx1] + x[idx2];
+                    }
+                }
+            });
         }
+
+        for (auto& thread : threads) {
+            thread.join();
+        }
+        numThreads /= 2;
     }
 }
 
-void parallelDownSweep(std::vector<double>& x) {
-    const int n = x.size();
+void parallelDownSweep(vector<double>& x) {
+    int n = x.size();
     x[n - 1] = 0; // Initialize the last element to 0
-    const int maxDepth = std::log2(n);
+    int numThreads = 1;
+    int maxDepth = std::log2(n);
+    std::vector<std::thread> threads;
 
     for (int d = maxDepth - 1; d >= 0; --d) {
-        const int powerOfTwoDPlus1 = 1 << (d + 1);
+        int powerOfTwoDPlus1 = 1 << (d + 1);
+        int chunkSize = (n + numThreads - 1) / numThreads;
+        chunkSize = (chunkSize + powerOfTwoDPlus1 - 1) / powerOfTwoDPlus1 * powerOfTwoDPlus1;
 
-#pragma omp parallel for
-        for (int k = 0; k < n; k += powerOfTwoDPlus1) {
-            const int idx1 = k + (1 << d) - 1;
-            const int idx2 = k + powerOfTwoDPlus1 - 1;
-            if (idx2 < n) {
-                const double tmp = x[idx1];
-                x[idx1] = x[idx2];
-                x[idx2] += tmp;
-            }
+        threads.resize(numThreads);
+        for (int i = 0; i < numThreads; ++i) {
+            int start = i * chunkSize;
+            int end = std::min(start + chunkSize, n);
+
+            threads[i] = std::thread([=, &x]() {
+                for (int k = start; k < end; k += powerOfTwoDPlus1) {
+                    int idx1 = k + (1 << d) - 1;
+                    int idx2 = std::min(k + powerOfTwoDPlus1 - 1, n - 1);
+                    if (idx2 < n) {
+                        double tmp = x[idx1];
+                        x[idx1] = x[idx2];
+                        x[idx2] += tmp;
+                    }
+                }
+            });
         }
+
+        for (auto& thread : threads) {
+            thread.join();
+        }
+
+        numThreads *= 2;
     }
 }
 
-void recursive_blelloch(std::vector<double>& x, int depth) {
-    const int n = omp_get_max_threads() * 2;
-    const int size = x.size();
-    const int paddedSize = ((size + n - 1) / n) * n;
-    x.resize(paddedSize, 0);
-
-    const int div = paddedSize / n;
-    std::vector<std::vector<double>> toHoldValues(div);
-    std::vector<double> newX(div);
-
-#pragma omp parallel for
-    for (int i = 0; i < div; ++i) {
-        toHoldValues[i].assign(x.begin() + i * n, x.begin() + (i + 1) * n);
-        parallelUpSweep(toHoldValues[i]);
-        parallelDownSweep(toHoldValues[i]);
-        newX[i] = toHoldValues[i].back() + x[(i + 1) * n - 1];
+void recurive_blelloch(vector<double>& x, int depth) {
+    int rem = x.size() % (NUM_THREADS * 2);
+    int div = x.size() / (NUM_THREADS * 2);
+    if (rem != 0) {
+        rem = (NUM_THREADS * 2) - rem;
+        x.resize(x.size() + rem, 0);
+        div++;
     }
 
-    if (depth == 1) {
+    int n = NUM_THREADS * 2;
+    vector<vector<double>> toHoldValues(div);
+    vector<double> newX(div);
+
+    vector<thread> threads;
+    for (int i = 0; i < div; i++) {
+        threads.emplace_back([&, i] {
+            toHoldValues[i].resize(n);
+            std::copy(x.begin() + (n * i), x.begin() + (n * i + n), toHoldValues[i].begin());
+
+            parallelUpSweep(toHoldValues[i]);
+            parallelDownSweep(toHoldValues[i]);
+
+            newX[i] = toHoldValues[i].back() + x[n * i + n - 1];
+        });
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    double bigg = newX.back();
+
+    if (depth - 1 == 0) {
         x = std::move(toHoldValues[0]);
-        x.resize(size);
         return;
     }
 
-    recursive_blelloch(newX, depth - 1);
-
-#pragma omp parallel for
-    for (int i = 0; i < div; ++i) {
-        for (int j = 0; j < n; ++j) {
-            toHoldValues[i][j] += newX[i];
-        }
-    }
+    recurive_blelloch(newX, depth - 1);
 
     x.clear();
-    for (const auto& subvec : toHoldValues) {
-        x.insert(x.end(), subvec.begin(), subvec.end());
+    x.reserve(div * n);
+
+    newX.push_back(newX.back() + bigg);
+
+    threads.clear();
+    for (int i = 0; i < div; i++) {
+        threads.emplace_back([&, i] {
+            double offset = newX[i];
+            std::transform(toHoldValues[i].begin(), toHoldValues[i].end(), toHoldValues[i].begin(),
+                           [offset](double val) { return val + offset; });
+        });
     }
-    x.resize(size);
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    for (const auto& vec : toHoldValues) {
+        x.insert(x.end(), vec.begin(), vec.end());
+    }
 }
 
 
@@ -147,50 +202,83 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    vector<double> spread_sum(9986);
-    vector<double> spread_sq_sum(9986);
+    size_t size = stock1_prices.size();
+    vector<double> spread_sum(size);
+    vector<double> spread_sq_sum(size);
     //vector<int> check(4, 0);
 
-#pragma omp parallel for
-    for(int i = 0; i<stock1_prices.size(); i++){
-        const double current_spread = stock1_prices[i] - stock2_prices[i];
-        spread_sum[i] = current_spread;
-        spread_sq_sum[i] = current_spread*current_spread;
+    // Parallelize the spread calculation
+    size_t num_threads = NUM_THREADS;
+    std::vector<std::thread> threads;
+    size_t chunk_size = size / num_threads;
+
+    for (size_t i = 0; i < num_threads; ++i) {
+        size_t start = i * chunk_size;
+        size_t end = (i == num_threads - 1) ? size : start + chunk_size;
+
+        threads.emplace_back([&, start, end]() {
+            for (size_t j = start; j < end; ++j) {
+                const double current_spread = stock1_prices[j] - stock2_prices[j];
+                spread_sum[j] = current_spread;
+                spread_sq_sum[j] = current_spread * current_spread;
+            }
+        });
     }
 
-    int depth = std::log(spread_sum.size())/log(NUM_THREADS*2);
-    float  check_depth = std::log(spread_sum.size())/log(NUM_THREADS*2);
-    int rem = (spread_sum.size()%(NUM_THREADS*2));
+    for (auto& thread : threads) {
+        thread.join();
+    }
 
-    if(rem != 0 || check_depth > depth)depth++;
+    int depth = std::log(size) / log(NUM_THREADS * 2);
+    float check_depth = std::log(size) / log(NUM_THREADS * 2);
+    int rem = (size % (NUM_THREADS * 2));
 
+    if (rem != 0 || check_depth > depth)
+        depth++;
 
-    recursive_blelloch(spread_sum, depth);
-    recursive_blelloch(spread_sq_sum, depth);
-#pragma omp parallel for
-    for (size_t i = N; i < stock1_prices.size(); ++i) {
+    recurive_blelloch(spread_sum, depth);
+    recurive_blelloch(spread_sq_sum, depth);
 
-        const double mean = (spread_sum[i] - spread_sum[i-N])/ N;
-        const double stddev = std::sqrt((spread_sq_sum[i] - spread_sq_sum[i-N])/ N - mean * mean);
-        const double current_spread = stock1_prices[i] - stock2_prices[i];
-        const double z_score = (current_spread - mean) / stddev;
+    // Parallelize the z-score calculation and position checks
+    // std::vector<std::vector<int>> local_checks(num_threads, std::vector<int>(4, 0));
 
+    threads.clear();
+    for (size_t i = 0; i < num_threads; ++i) {
+        size_t start = i * chunk_size;
+        size_t end = (i == num_threads - 1) ? size : start + chunk_size;
 
-        if (z_score > 1.0) {
-            //check[0]++;  // Long and Short
-        } else if (z_score < -1.0) {
-            //check[1]++;  // Short and Long
-        } else if (std::abs(z_score) < 0.8) {
-            //check[2]++;  // Close positions
-        } else {
-            //check[3]++;  // No signal
+        threads.emplace_back([&, start, end]() {
+            for (size_t j = std::max(start, N); j < end; ++j) {
+                const double mean = (spread_sum[j] - spread_sum[j - N]) / N;
+                const double stddev = std::sqrt((spread_sq_sum[j] - spread_sq_sum[j - N]) / N - mean * mean);
+                const double current_spread = stock1_prices[j] - stock2_prices[j];
+                const double z_score = (current_spread - mean) / stddev;
+
+                if (z_score > 1.0) {
+                    //local_checks[i][0]++; // Long and Short
+                } else if (z_score < -1.0) {
+                    //local_checks[i][1]++; // Short and Long
+                } else if (std::abs(z_score) < 0.8) {
+                    //local_checks[i][2]++; // Close positions
+                } else {
+                    //local_checks[i][3]++; // No signal
+                }
+            }
+        });
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    /*// Combine the local check results
+    for (const auto& local_check : local_checks) {
+        for (size_t i = 0; i < 4; ++i) {
+            check[i] += local_check[i];
         }
-
     }
-    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
-    //std::cout << "Maximum number of threads = " << omp_get_max_threads() << std::endl;
-
+    cout << check[0] << ":" << check[1] << ":" << check[2] << ":" << check[3] << endl;*/
 }
 
 
