@@ -12,7 +12,7 @@
 #include <thread>
 #include <omp.h>
 
-#define NUM_THREADS 256
+#define NUM_THREADS 2
 
 
 using namespace std;
@@ -143,7 +143,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     } else {
         check[3]++;  // No signal
     }
-
+    int num_threads = omp_get_num_threads();
+    cout<<num_threads<<endl;
 #pragma omp parallel for
     for (size_t i = N+1; i < stock1_prices.size(); ++i) {
 
