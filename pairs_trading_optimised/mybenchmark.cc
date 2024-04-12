@@ -12,7 +12,7 @@
 #include <thread>
 #include <omp.h>
 
-#define NUM_THREADS 2
+#define NUM_THREADS 8
 
 
 using namespace std;
@@ -79,7 +79,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     //cout<<num_threads<<endl;
     std::array<double, 1256> spread_sum;
     std::array<double, 1256> spread_sq_sum;
-    vector<int> check(4, 0);
+    //vector<int> check(4, 0);
     vector<thread> threads;
 
     spread_sum[0] = stock1_prices[0] - stock2_prices[0];
@@ -135,13 +135,13 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
 
     if (z_score > 1.0) {
-        check[0]++;  // Long and Short
+        //check[0]++;  // Long and Short
     } else if (z_score < -1.0) {
-        check[1]++;  // Short and Long
+        //check[1]++;  // Short and Long
     } else if (std::abs(z_score) < 0.8) {
-        check[2]++;  // Close positions
+        //check[2]++;  // Close positions
     } else {
-        check[3]++;  // No signal
+        //check[3]++;  // No signal
     }
 
 #pragma omp parallel for
@@ -151,10 +151,6 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         const double stddev = std::sqrt((spread_sq_sum[i-1] - spread_sq_sum[i-N-1])/ N - mean * mean);
         const double current_spread = stock1_prices[i] - stock2_prices[i];
         const double z_score = (current_spread - mean) / stddev;
-
-        int num_threads = omp_get_num_threads();
-        cout<<num_threads<<endl;
-
 
         if (z_score > 1.0) {
             //check[0]++;  // Long and Short
