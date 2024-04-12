@@ -5,9 +5,15 @@
 #include <string>
 #include <numeric>
 #include <cmath>
-#include <immintrin.h>
+//#include <immintrin.h>'
 #include <iostream>
-#include <array>  // Add this line
+#include <chrono>
+#include <array>
+#include <thread>
+#include <omp.h>
+
+#define NUM_THREADS 256
+
 
 using namespace std;
 
@@ -21,8 +27,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "Intel.csv";
-    string ms_file = "AMD.csv";
+    string gs_file = "GS.csv";
+    string ms_file = "MS.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -46,7 +52,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[4]);
+        double adjClose = std::stod(row[5]);
         prices.push_back(adjClose);
     }
 
@@ -54,57 +60,108 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
+/*void block_prefix_sum(const int start, const int end, const vector<double>& stock1_prices, const vector<double>& stock2_prices, array<double, 1256>& spread_sum, array<double, 1256>& spread_sq_sum) {
+
+    for (int i = start+1; i <= end; i++) {
+        const double current_spread = stock1_prices[i] - stock2_prices[i];
+        spread_sum[i] = current_spread + spread_sum[i - 1];
+        spread_sq_sum[i] = (current_spread * current_spread) + spread_sq_sum[i - 1];
+    }
+    return;
+}*/
+
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
-    static_assert(N % 4 == 0, "N should be multiple of 4 for AVX2 instructions");
-    std::array<double, N> spread;
-    size_t spread_index = 0;
+    static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    for(size_t i = 0; i < N; ++i) {
-        spread[i] = stock1_prices[i] - stock2_prices[i];
+    std::array<double, 1256> spread_sum;
+    std::array<double, 1256> spread_sq_sum;
+    //vector<int> check(4, 0);
+    vector<thread> threads;
+
+    spread_sum[0] = stock1_prices[0] - stock2_prices[0];
+    spread_sq_sum[0] = (stock1_prices[0] - stock2_prices[0]) * (stock1_prices[0] - stock2_prices[0]);
+
+    auto worker = [&](size_t start, size_t end) {
+        for (int i = start + 1; i <= end; i++) {
+            const double current_spread = stock1_prices[i] - stock2_prices[i];
+            spread_sum[i] = current_spread + spread_sum[i - 1];
+            spread_sq_sum[i] = (current_spread * current_spread) + spread_sq_sum[i - 1];
+        }
+    };
+
+    int blockSize = stock1_prices.size() / NUM_THREADS;
+    int remainingSize = stock1_prices.size() % NUM_THREADS;
+
+    int start = 0;
+    int end = blockSize-1;
+#pragma omp simd
+    for (int i = 0; i < NUM_THREADS; i++) {
+        if(i < remainingSize)end++;
+        const double current_spread = stock1_prices[start] - stock2_prices[start];
+        spread_sum[start] = current_spread;
+        spread_sq_sum[start] = current_spread * current_spread;
+
+        threads.push_back(thread(worker, start, end));
+
+        start = end +1;
+        end = start+blockSize-1;
     }
 
-    for(size_t i = N; i < stock1_prices.size(); ++i) {
-        __m256d sum_vec = _mm256_setzero_pd();
-        __m256d sq_sum_vec = _mm256_setzero_pd();
+    for (auto& th : threads) {
+        th.join();
+    }
 
-        for(size_t j = 0; j < N; j += 4) {
-            __m256d spread_vec = _mm256_loadu_pd(&spread[j]);
-            sum_vec = _mm256_add_pd(sum_vec, spread_vec);
-            sq_sum_vec = _mm256_fmadd_pd(spread_vec, spread_vec, sq_sum_vec);
-            //sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
+    start = (remainingSize == 0) ? blockSize : blockSize+1;
+    end = start+blockSize-1;;
+    for (int i = 1; i < NUM_THREADS; i++) {
+
+        if(i < remainingSize)end++;
+        for (int j = start; j <= end; j++) {
+            spread_sum[j] += spread_sum[start - 1];
+            spread_sq_sum[j] += spread_sq_sum[start - 1];
         }
+        start = end + 1;
+        end = start+blockSize-1;
+    }
 
-        __m256d temp1 = _mm256_hadd_pd(sum_vec, sum_vec);
-        __m256d sum_vec_total = _mm256_add_pd(temp1, _mm256_permute2f128_pd(temp1, temp1, 0x1));
+    const double mean = (spread_sum[N-1])/ N;
+    const double stddev = std::sqrt((spread_sq_sum[N-1])/ N - mean * mean);
+    const double current_spread = stock1_prices[N] - stock2_prices[N];
+    const double z_score = (current_spread - mean) / stddev;
 
-        __m256d temp2 = _mm256_hadd_pd(sq_sum_vec, sq_sum_vec);
-        __m256d sq_sum_vec_total = _mm256_add_pd(temp2, _mm256_permute2f128_pd(temp2, temp2, 0x1));
 
-        double sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sum_vec_total));
-        double sq_sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sq_sum_vec_total));
+    if (z_score > 1.0) {
+        //check[0]++;  // Long and Short
+    } else if (z_score < -1.0) {
+        //check[1]++;  // Short and Long
+    } else if (std::abs(z_score) < 0.8) {
+        //check[2]++;  // Close positions
+    } else {
+        //check[3]++;  // No signal
+    }
 
-        double mean = sum / N;
-        double stddev = std::sqrt(sq_sum / N - mean * mean);
+#pragma omp parallel for
+    for (size_t i = N+1; i < stock1_prices.size(); ++i) {
 
-        double current_spread = stock1_prices[i] - stock2_prices[i];
-        double z_score = (current_spread - mean) / stddev;
+        const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;
+        const double stddev = std::sqrt((spread_sq_sum[i-1] - spread_sq_sum[i-N-1])/ N - mean * mean);
+        const double current_spread = stock1_prices[i] - stock2_prices[i];
+        const double z_score = (current_spread - mean) / stddev;
 
-        spread[spread_index] = current_spread;
-
-        if(z_score > 1.0) {
-            // Long and Short
-        } else if(z_score < -1.0) {
-            // Short and Long
+        if (z_score > 1.0) {
+            //check[0]++;  // Long and Short
+        } else if (z_score < -1.0) {
+            //check[1]++;  // Short and Long
         } else if (std::abs(z_score) < 0.8) {
-            // Close positions
+            //check[2]++;  // Close positions
         } else {
-            // No signal
+            //check[3]++;  // No signal
         }
 
-        spread_index = (spread_index + 1) % N;
     }
+    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
