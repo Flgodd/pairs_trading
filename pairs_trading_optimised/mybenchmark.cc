@@ -12,7 +12,7 @@
 #include <thread>
 #include <omp.h>
 
-#define NUM_THREADS 24
+#define NUM_THREADS 32
 
 
 using namespace std;
