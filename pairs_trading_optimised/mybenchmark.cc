@@ -12,7 +12,7 @@
 #include <thread>
 #include <omp.h>
 
-#define NUM_THREADS 8
+#define NUM_THREADS omp_get_num_threads()
 
 
 using namespace std;
@@ -76,7 +76,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
     //int num_threads = std::thread::hardware_concurrency();
-    //cout<<num_threads<<endl;
+    cout<<NUM_THREADS<<endl;
     std::array<double, 1256> spread_sum;
     std::array<double, 1256> spread_sq_sum;
     //vector<int> check(4, 0);
