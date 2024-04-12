@@ -10,6 +10,7 @@
 #include <chrono>
 #include <array>
 #include <thread>
+#include <omp.h>
 
 
 using namespace std;
@@ -65,7 +66,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     std::array<double, 9986> spread;
     //vector<int> check(4, 0);
 
-    int num_threads = 4;
+    int num_threads = omp_get_max_threads();
     vector<thread> threads;
 
     auto spread_worker = [&](size_t start_index, size_t end_index) {
