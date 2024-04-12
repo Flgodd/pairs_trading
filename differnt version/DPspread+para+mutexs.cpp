@@ -8,9 +8,9 @@
 //#include <immintrin.h>'
 #include <iostream>
 #include <chrono>
-#include <arm_neon.h>
 #include <array>
 #include <thread>
+#include <omp.h>
 
 
 using namespace std;
@@ -63,10 +63,10 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<double, 1256> spread;
+    std::array<double, 9986> spread;
     //vector<int> check(4, 0);
 
-    int num_threads = 4;
+    int num_threads = omp_get_max_threads();
     vector<thread> threads;
 
     auto spread_worker = [&](size_t start_index, size_t end_index) {
@@ -75,7 +75,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         }
     };
 
-    size_t work_chunk = 1256 / num_threads;
+    size_t work_chunk = 9986 / num_threads;
     for (int i = 0; i < num_threads; ++i) {
         size_t start = i * work_chunk;
         size_t end = start + work_chunk;

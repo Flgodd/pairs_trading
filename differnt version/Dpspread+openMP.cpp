@@ -64,7 +64,7 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<double, 1256> spread;
+    std::array<double, 9986> spread;
     //vector<int> check(4, 0);
 
 
