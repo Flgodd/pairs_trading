@@ -15,7 +15,7 @@ const int BLOCK_SIZE = 512;
 
 
 __global__ void pairs_trading_kernel(const double* stock1_prices, const double* stock2_prices, int* check, int size) {
-    __shared__ double spread[1256];
+    //__shared__ double spread[1256];
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int stride = blockDim.x * gridDim.x;
