@@ -98,7 +98,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     int start = 0;
     int end = blockSize-1;
-
+#pragma omp simd
     for (int i = 0; i < NUM_THREADS; i++) {
         if(i < remainingSize)end++;
         const double current_spread = stock1_prices[start] - stock2_prices[start];
