@@ -59,7 +59,7 @@ vector<double> readCSV(const string& filename){
 
 template<size_t N, size_t UnrollFactor>
 struct LoopUnroll {
-    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex) {
+    static void computeSpread(std::array<double, 2512>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex) {
         const int idx = startIndex*2;
         double current_spread = stock1_prices[startIndex] - stock2_prices[startIndex];
         spread[idx] = current_spread + spread[idx - 2];
@@ -70,7 +70,7 @@ struct LoopUnroll {
 
 template<size_t N>
 struct LoopUnroll<N, 1> {
-    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex) {
+    static void computeSpread(std::array<double, 2512>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex) {
         // Base case, do nothing
     }
 };
