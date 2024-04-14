@@ -21,8 +21,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "Intel.csv";
-    string ms_file = "AMD.csv";
+    string gs_file = "RELIANCE.csv";
+    string ms_file = "ONGC.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -46,7 +46,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[4]);
+        double adjClose = std::stod(row[1]);
         prices.push_back(adjClose);
     }
 
