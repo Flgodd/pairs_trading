@@ -24,8 +24,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "RELIANCE.csv";
-    string ms_file = "ONGC.csv";
+    string gs_file = "GS.csv";
+    string ms_file = "MS.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -49,7 +49,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[1]);
+        double adjClose = std::stod(row[5]);
         prices.push_back(adjClose);
     }
 
@@ -60,51 +60,62 @@ vector<double> readCSV(const string& filename){
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
-    static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
-    //cout<<stock1_prices.size()<<":"<<stock2_prices.size()<<endl;
-    std::array<double, 1342050> spread;
-    //vector<int> check(4, 0);
+    static_assert(N % 4 == 0, "N should be a multiple of 4 for SIMD instructions");
 
-    spread[0] = stock1_prices[0] - stock2_prices[0];
-    spread[1] = (stock1_prices[0] - stock2_prices[0])*(stock1_prices[0] - stock2_prices[0]);
+    constexpr size_t SpreadSize = 1256;
+    alignas(32) std::array<double, SpreadSize * 2> spread;
 
-    for(size_t i = 1; i < N; ++i) {
-        const int idx = i*2;
-        double current_spread = stock1_prices[i] - stock2_prices[i];
-        spread[idx] = current_spread + spread[idx - 2];
-        spread[idx +1] = (current_spread)*(current_spread) + spread[idx - 1];
+    __m256d spread_low = _mm256_setzero_pd();
+    __m256d spread_high = _mm256_setzero_pd();
+
+    for (size_t i = 0; i < N; i += 4) {
+        __m256d stock1 = _mm256_loadu_pd(&stock1_prices[i]);
+        __m256d stock2 = _mm256_loadu_pd(&stock2_prices[i]);
+        __m256d current_spread = _mm256_sub_pd(stock1, stock2);
+
+        spread_low = _mm256_add_pd(spread_low, current_spread);
+        spread_high = _mm256_fmadd_pd(current_spread, current_spread, spread_high);
+
+        _mm256_store_pd(&spread[i * 2], spread_low);
+        _mm256_store_pd(&spread[i * 2 + 4], spread_high);
     }
 
-    for(size_t i = N; i<1342050; i++){
-        const int idx = i*2;
-        double current_spread = stock1_prices[i] - stock2_prices[i];
-        double old_spread = stock1_prices[i-N] - stock2_prices[i-N];
-        spread[idx] = current_spread + spread[idx -2] - (old_spread);
-        spread[idx + 1] = (current_spread*current_spread) + spread[idx -1] - (old_spread*old_spread);
+    for (size_t i = N; i < SpreadSize; i += 4) {
+        __m256d stock1 = _mm256_loadu_pd(&stock1_prices[i]);
+        __m256d stock2 = _mm256_loadu_pd(&stock2_prices[i]);
+        __m256d current_spread = _mm256_sub_pd(stock1, stock2);
 
+        __m256d old_stock1 = _mm256_loadu_pd(&stock1_prices[i - N]);
+        __m256d old_stock2 = _mm256_loadu_pd(&stock2_prices[i - N]);
+        __m256d old_spread = _mm256_sub_pd(old_stock1, old_stock2);
+
+        spread_low = _mm256_sub_pd(_mm256_add_pd(spread_low, current_spread), old_spread);
+        spread_high = _mm256_sub_pd(_mm256_fmadd_pd(current_spread, current_spread, spread_high),
+                                    _mm256_mul_pd(old_spread, old_spread));
+
+        _mm256_store_pd(&spread[i * 2], spread_low);
+        _mm256_store_pd(&spread[i * 2 + 4], spread_high);
     }
+
+    constexpr double inv_n = 1.0 / N;
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
-        const int idx = (i-1)*2;
-        double mean = spread[idx]/ N;
-        double stddev = std::sqrt(spread[idx +1]/ N - mean * mean);
+        const size_t idx = (i - 1) * 2;
+        double mean = spread[idx] * inv_n;
+        double stddev = std::sqrt(spread[idx + 1] * inv_n - mean * mean);
         double current_spread = stock1_prices[i] - stock2_prices[i];
         double z_score = (current_spread - mean) / stddev;
 
-
         if (z_score > 1.0) {
-            //check[0]++;  // Long and Short
+            // Long and Short
         } else if (z_score < -1.0) {
-            //check[1]++;  // Short and Long
+            // Short and Long
         } else if (std::abs(z_score) < 0.8) {
-            //check[2]++;  // Close positions
+            // Close positions
         } else {
-            //check[3]++;  // No signal
+            // No signal
         }
-
     }
-    // cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
-
 }
 
 
