@@ -24,8 +24,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "RELIANCE.csv";
-    string ms_file = "ONGC.csv";
+    string gs_file = "Intel.csv";
+    string ms_file = "AMD.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -49,7 +49,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[1]);
+        double adjClose = std::stod(row[4]);
         prices.push_back(adjClose);
     }
 
@@ -62,29 +62,32 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<std::array<double, 2>, 671025> spread;
+    std::array<double, 19972> spread;
     //vector<int> check(4, 0);
 
-    spread[0][0] = stock1_prices[0] - stock2_prices[0];
-    spread[0][1] = (stock1_prices[0] - stock2_prices[0])*(stock1_prices[0] - stock2_prices[0]);
+    spread[0] = stock1_prices[0] - stock2_prices[0];
+    spread[1] = (stock1_prices[0] - stock2_prices[0])*(stock1_prices[0] - stock2_prices[0]);
+
     for(size_t i = 1; i < N; ++i) {
+        const int idx = i*2;
         double current_spread = stock1_prices[i] - stock2_prices[i];
-        spread[i][0] = current_spread + spread[i-1][0];
-        spread[i][1] = (current_spread)*(current_spread) + spread[i-1][1];
+        spread[idx] = current_spread + spread[idx - 2];
+        spread[idx +1] = (current_spread)*(current_spread) + spread[idx - 1];
     }
 
-    for(size_t i = N; i<671025; i++){
+    for(size_t i = N; i<19972; i++){
+        const int idx = i*2;
         double current_spread = stock1_prices[i] - stock2_prices[i];
         double old_spread = stock1_prices[i-N] - stock2_prices[i-N];
-        spread[i][0] = current_spread + spread[i-1][0] - (old_spread);
-        spread[i][1] = (current_spread*current_spread) + spread[i-1][1] - (old_spread*old_spread);
+        spread[idx] = current_spread + spread[idx -2] - (old_spread);
+        spread[idx + 1] = (current_spread*current_spread) + spread[idx -1] - (old_spread*old_spread);
 
     }
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
-
-        double mean = spread[i-1][0]/ N;
-        double stddev = std::sqrt(spread[i-1][1]/ N - mean * mean);
+        const int idx = (i-1)*2;
+        double mean = spread[idx]/ N;
+        double stddev = std::sqrt(spread[idx +1]/ N - mean * mean);
         double current_spread = stock1_prices[i] - stock2_prices[i];
         double z_score = (current_spread - mean) / stddev;
 
@@ -100,7 +103,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         }
 
     }
-    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    // cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
