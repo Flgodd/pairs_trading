@@ -57,6 +57,16 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
+template<size_t I, size_t N, typename ArrayType>
+inline void accumulateSpread(ArrayType& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
+    if constexpr (I < N) {
+        double current_spread = stock1_prices[I] - stock2_prices[I];
+        spread[I][0] = current_spread + spread[I - 1][0];
+        spread[I][1] = (current_spread * current_spread) + spread[I - 1][1];
+        accumulateSpread<I + 1, N>(spread, stock1_prices, stock2_prices);
+    }
+}
+
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
@@ -68,12 +78,14 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     spread[0] = stock1_prices[0] - stock2_prices[0];
     spread[1] = (stock1_prices[0] - stock2_prices[0])*(stock1_prices[0] - stock2_prices[0]);
 
-    for(size_t i = 1; i < N; ++i) {
+    /*for(size_t i = 1; i < N; ++i) {
         const int idx = i*2;
         double current_spread = stock1_prices[i] - stock2_prices[i];
         spread[idx] = current_spread + spread[idx - 2];
         spread[idx +1] = (current_spread)*(current_spread) + spread[idx - 1];
-    }
+    }*/
+    accumulateSpread<1, N>(spread, stock1_prices, stock2_prices);
+
 
     for(size_t i = N; i<1256; i++){
         const int idx = i*2;
