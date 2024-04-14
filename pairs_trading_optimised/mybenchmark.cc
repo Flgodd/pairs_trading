@@ -13,6 +13,7 @@
 
 using namespace std;
 
+
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
 
@@ -23,8 +24,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "GS.csv";
-    string ms_file = "MS.csv";
+    string gs_file = "Intel.csv";
+    string ms_file = "AMD.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -48,7 +49,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[5]);
+        double adjClose = std::stod(row[4]);
         prices.push_back(adjClose);
     }
 
@@ -56,30 +57,23 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
-template<size_t I, size_t N, typename ArrayType>
-inline void accumulateSpread(ArrayType& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
-    if constexpr (I < N) {
-        double current_spread = stock1_prices[I] - stock2_prices[I];
-        spread[I][0] = current_spread + spread[I - 1][0];
-        spread[I][1] = (current_spread * current_spread) + spread[I - 1][1];
-        accumulateSpread<I + 1, N>(spread, stock1_prices, stock2_prices);
-    }
-}
-
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<std::array<double, 2>, 1256> spread;
+    std::array<std::array<double, 2>, 9986> spread;
     //vector<int> check(4, 0);
 
     spread[0][0] = stock1_prices[0] - stock2_prices[0];
     spread[0][1] = (stock1_prices[0] - stock2_prices[0])*(stock1_prices[0] - stock2_prices[0]);
+    for(size_t i = 1; i < N; ++i) {
+        double current_spread = stock1_prices[i] - stock2_prices[i];
+        spread[i][0] = current_spread + spread[i-1][0];
+        spread[i][1] = (current_spread)*(current_spread) + spread[i-1][1];
+    }
 
-    accumulateSpread<1, N>(spread, stock1_prices, stock2_prices);
-
-    for(size_t i = N; i<1256; i++){
+    for(size_t i = N; i<9986; i++){
         double current_spread = stock1_prices[i] - stock2_prices[i];
         double old_spread = stock1_prices[i-N] - stock2_prices[i-N];
         spread[i][0] = current_spread + spread[i-1][0] - (old_spread);
