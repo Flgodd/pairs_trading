@@ -57,19 +57,23 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
-template<size_t N, typename ArrayType>
-inline void accumulateSpread(ArrayType& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
-        const int idx = I*2;
-        double current_spread = stock1_prices[i] - stock2_prices[i];
+template<size_t N, size_t UnrollFactor>
+struct LoopUnroll {
+    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex) {
+        const int idx = startIndex*2;
+        double current_spread = stock1_prices[startIndex] - stock2_prices[startIndex];
         spread[idx] = current_spread + spread[idx - 2];
         spread[idx +1] = (current_spread)*(current_spread) + spread[idx - 1];
-        accumulateSpread<N-1>(spread, stock1_prices, stock2_prices);
-}
+        LoopUnroll<N, UnrollFactor - 1>::computeSpread(spread, stock1_prices, stock2_prices, startIndex + 1);
+    }
+};
 
-template<size_t 0, typename ArrayType>
-inline void accumulateSpread(ArrayType& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
-    //base case
-}
+template<size_t N>
+struct LoopUnroll<N, 1> {
+    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex) {
+        // Base case, do nothing
+    }
+};
 
 
 template<size_t N>
@@ -88,7 +92,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         spread[idx] = current_spread + spread[idx - 2];
         spread[idx +1] = (current_spread)*(current_spread) + spread[idx - 1];
     }*/
-    accumulateSpread<N>(spread, stock1_prices, stock2_prices);
+    LoopUnroll<N, N>::computeSpread(spread, stock1_prices, stock2_prices, 0);
 
 
     for(size_t i = N; i<1256; i++){
