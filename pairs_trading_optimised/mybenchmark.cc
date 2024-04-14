@@ -74,10 +74,12 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     //vector<int>check(4);
 
+    constexpr double RECIPROCAL_N = 1.0 / static_cast<double>(N);
+
     const __m256d one = _mm256_set1_pd(1.0);
     const __m256d minus_one = _mm256_set1_pd(-1.0);
     const __m256d zero_point_eight = _mm256_set1_pd(0.8);
-    const __m256d n_vec = _mm256_set1_pd(static_cast<double>(N));
+    const __m256d reciprocal_n_vec = _mm256_set1_pd(RECIPROCAL_N);
 
     for (size_t i = N; i < size; ++i) {
         __m256d sum_vec = _mm256_setzero_pd();
@@ -98,8 +100,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         double sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sum_vec_total));
         double sq_sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sq_sum_vec_total));
 
-        __m256d mean_vec = _mm256_div_pd(sum_vec_total, n_vec);
-        __m256d stddev_vec = _mm256_sqrt_pd(_mm256_sub_pd(_mm256_div_pd(sq_sum_vec_total, n_vec), _mm256_mul_pd(mean_vec, mean_vec)));
+        __m256d mean_vec = _mm256_mul_pd(sum_vec_total, reciprocal_n_vec);
+        __m256d stddev_vec = _mm256_sqrt_pd(_mm256_sub_pd(_mm256_mul_pd(sq_sum_vec_total, reciprocal_n_vec), _mm256_mul_pd(mean_vec, mean_vec)));
 
         double current_spread = spread[i];
         __m256d current_spread_vec = _mm256_set1_pd(current_spread);
@@ -115,20 +117,15 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         int short_long_mask_bits = _mm256_movemask_pd(short_long_mask);
         int close_positions_mask_bits = _mm256_movemask_pd(close_positions_mask);
 
-
-        if(long_short_mask_bits != 0){
+        if (long_short_mask_bits != 0) {
             //check[0]++;
-        }
-        else if(short_long_mask_bits != 0){
+        } else if (short_long_mask_bits != 0) {
             //check[1]++;
-        }
-        else if(close_positions_mask_bits != 0){
+        } else if (close_positions_mask_bits != 0) {
             //check[2]++;
-        }
-        else{
+        } else {
             //check[3]++;
         }
-
     }
     //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 }
