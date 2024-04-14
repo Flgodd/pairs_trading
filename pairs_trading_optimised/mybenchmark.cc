@@ -8,7 +8,6 @@
 //#include <immintrin.h>'
 #include <iostream>
 #include <chrono>
-#include <arm_neon.h>
 #include <array>
 
 
