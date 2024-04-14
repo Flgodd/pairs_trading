@@ -62,28 +62,30 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<double, 1256> spread;
+    std::array<std::array<double, 2>, 1256> spread;
     //vector<int> check(4, 0);
 
-    for(size_t i = 0; i < 1256; ++i) {
-        spread[i] = stock1_prices[i] - stock2_prices[i];
+    spread[0][0] = stock1_prices[0] - stock2_prices[0];
+    spread[0][1] = (stock1_prices[0] - stock2_prices[0])*(stock1_prices[0] - stock2_prices[0]);
+    for(size_t i = 1; i < N; ++i) {
+        double current_spread = stock1_prices[i] - stock2_prices[i];
+        spread[i][0] = current_spread + spread[i-1][0];
+        spread[i][1] = (current_spread)*(current_spread) + spread[i-1][1];
+    }
+
+    for(size_t i = N; i<1256; i++){
+        double current_spread = stock1_prices[i] - stock2_prices[i];
+        double old_spread = stock1_prices[i-N] - stock2_prices[i-N];
+        spread[i][0] = current_spread + spread[i-1][0] - (old_spread);
+        spread[i][1] = (current_spread*current_spread) + spread[i-1][1] - (old_spread*old_spread);
+
     }
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
 
-        int start = i-N;
-
-        double sum = spread[start]+spread[start+1]+spread[start+2]+spread[start+3]
-                     + spread[start+4]+spread[start+5]+spread[start+6]+spread[start+7];
-
-        double sq_sum = (spread[start]*spread[start]) + (spread[start+1]*spread[start+1])
-                        + (spread[start+2]*spread[start+2]) + (spread[start+3]*spread[start+3])
-                        + (spread[start+4]*spread[start+4]) + (spread[start+5]*spread[start+5])
-                        + (spread[start+6]*spread[start+6]) + (spread[start+7]*spread[start+7]);
-
-        double mean = sum / N;
-        double stddev = std::sqrt(sq_sum / N - mean * mean);
-        double current_spread = spread[i];
+        double mean = spread[i-1][0]/ N;
+        double stddev = std::sqrt(spread[i-1][1]/ N - mean * mean);
+        double current_spread = stock1_prices[i] - stock2_prices[i];
         double z_score = (current_spread - mean) / stddev;
 
 
@@ -101,21 +103,6 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
-
-
-template<size_t N>
-void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
-    if (stock1_prices.empty() || stock2_prices.empty()) {
-        read_prices();
-    }
-    for (auto _ : state) {
-        pairs_trading_strategy_optimized<N>(stock1_prices, stock2_prices);
-    }
-}
-
-BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 8);
-
-BENCHMARK_MAIN();
 
 
 template<size_t N>
