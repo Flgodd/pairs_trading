@@ -25,8 +25,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "Intel.csv";
-    string ms_file = "AMD.csv";
+    string gs_file = "GS.csv";
+    string ms_file = "MS.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -50,7 +50,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[4]);
+        double adjClose = std::stod(row[5]);
         prices.push_back(adjClose);
     }
 
@@ -62,7 +62,7 @@ vector<double> readCSV(const string& filename){
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
-    std::array<double, 19732> spread;
+    std::array<double, 2512> spread;
     //vector<int> check(4, 0);
 
     spread[0] = stock1_prices[0] - stock2_prices[0];
@@ -76,7 +76,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         spread[idx +1] = (current_spread)*(current_spread) + spread[idx - 1];
     }
 #pragma omp simd
-    for(size_t i = N; i<19732; i++){
+    for(size_t i = N; i<2512; i++){
         const int idx = i*2;
         double current_spread = stock1_prices[i] - stock2_prices[i];
         double old_spread = stock1_prices[i-N] - stock2_prices[i-N];
