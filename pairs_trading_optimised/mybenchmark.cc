@@ -24,8 +24,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "GS.csv";
-    string ms_file = "MS.csv";
+    string gs_file = "Intel.csv";
+    string ms_file = "AMD.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -49,7 +49,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[5]);
+        double adjClose = std::stod(row[4]);
         prices.push_back(adjClose);
     }
 
@@ -62,7 +62,7 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 4 == 0, "N should be a multiple of 4 for SIMD instructions");
 
-    constexpr size_t SpreadSize = 1256;
+    constexpr size_t SpreadSize = 9866;
     alignas(32) std::array<double, SpreadSize * 2> spread;
 
     __m256d spread_low = _mm256_setzero_pd();
