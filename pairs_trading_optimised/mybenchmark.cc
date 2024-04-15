@@ -83,8 +83,12 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         sum_squared_spread = _mm256_add_pd(sum_squared_spread, _mm256_mul_pd(spread_vec, spread_vec));
     }
 
-    double mean = _mm256_reduce_add_pd(sum_spread) / N;
-    double stddev = std::sqrt(_mm256_reduce_add_pd(sum_squared_spread) / N - mean * mean);
+    double temp[4];
+    _mm256_store_pd(temp, sum_spread);
+    double mean = (temp[0] + temp[1] + temp[2] + temp[3]) / N;
+
+    _mm256_store_pd(temp, sum_squared_spread);
+    double stddev = std::sqrt((temp[0] + temp[1] + temp[2] + temp[3]) / N - mean * mean);
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
         const int idx = (i - 1) * 2;
@@ -100,8 +104,11 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         sum_spread = _mm256_add_pd(sum_spread, spread_vec);
         sum_squared_spread = _mm256_add_pd(sum_squared_spread, _mm256_mul_pd(spread_vec, spread_vec));
 
-        mean = _mm256_reduce_add_pd(sum_spread) / N;
-        stddev = std::sqrt(_mm256_reduce_add_pd(sum_squared_spread) / N - mean * mean);
+        _mm256_store_pd(temp, sum_spread);
+        mean = (temp[0] + temp[1] + temp[2] + temp[3]) / N;
+
+        _mm256_store_pd(temp, sum_squared_spread);
+        stddev = std::sqrt((temp[0] + temp[1] + temp[2] + temp[3]) / N - mean * mean);
 
         double z_score = (current_spread - mean) / stddev;
 
