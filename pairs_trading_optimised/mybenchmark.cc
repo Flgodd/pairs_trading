@@ -62,13 +62,13 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<double, 2512> spread;
+    std::array<double, 19732> spread;
     //vector<int> check(4, 0);
 
     spread[0] = stock1_prices[0] - stock2_prices[0];
     spread[1] = (stock1_prices[0] - stock2_prices[0])*(stock1_prices[0] - stock2_prices[0]);
 #pragma omp simd
-    for(size_t i = 1; i<1256; i++){
+    for(size_t i = 1; i<19732; i++){
         const int idx = i*2;
         double current_spread = stock1_prices[i] - stock2_prices[i];
         spread[idx] = current_spread + spread[idx -2];
