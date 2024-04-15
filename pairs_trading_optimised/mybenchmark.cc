@@ -9,6 +9,7 @@
 #include <iostream>
 #include <chrono>
 #include <array>
+#include <omp.h>
 
 
 using namespace std;
@@ -66,7 +67,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     spread[0] = stock1_prices[0] - stock2_prices[0];
     spread[1] = (stock1_prices[0] - stock2_prices[0])*(stock1_prices[0] - stock2_prices[0]);
-
+#pragma omp simd
     for(size_t i = 1; i<19732; i++){
         const int idx = i*2;
         double current_spread = stock1_prices[i] - stock2_prices[i];
@@ -92,7 +93,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         //check[3]++;  // No signal
     }
 
-
+#pragma omp simd
     for (size_t i = N+1; i < stock1_prices.size(); ++i) {
         const int idx = (i-1)*2;
         double mean = (spread[idx] - spread[idx-(N*2)])/ N;
