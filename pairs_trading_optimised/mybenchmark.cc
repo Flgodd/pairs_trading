@@ -60,68 +60,61 @@ vector<double> readCSV(const string& filename){
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
-    static_assert(N % 4 == 0, "N should be a multiple of 4 for AVX instructions");
+    static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<double, 19732> spread;
+    std::array<double, 2512> spread;
+    //vector<int> check(4, 0);
+
     spread[0] = stock1_prices[0] - stock2_prices[0];
-    spread[1] = (stock1_prices[0] - stock2_prices[0]) * (stock1_prices[0] - stock2_prices[0]);
-
-    for (size_t i = 1; i < 19732; i++) {
-        const int idx = i * 2;
+    spread[1] = (stock1_prices[0] - stock2_prices[0])*(stock1_prices[0] - stock2_prices[0]);
+#pragma omp simd
+    for(size_t i = 1; i<1256; i++){
+        const int idx = i*2;
         double current_spread = stock1_prices[i] - stock2_prices[i];
-        spread[idx] = current_spread + spread[idx - 2];
-        spread[idx + 1] = (current_spread * current_spread) + spread[idx - 1];
+        spread[idx] = current_spread + spread[idx -2];
+        spread[idx + 1] = (current_spread*current_spread) + spread[idx -1];
+
     }
 
-    const int idx = (N - 1) * 2;
-    __m256d sum_spread = _mm256_setzero_pd();
-    __m256d sum_squared_spread = _mm256_setzero_pd();
+    const int idx = (N-1)*2;
+    double mean = (spread[idx])/ N;
+    double stddev = std::sqrt((spread[idx +1])/ N - mean * mean);
+    double current_spread = stock1_prices[N] - stock2_prices[N];
+    double z_score = (current_spread - mean) / stddev;
 
-    for (size_t i = 0; i <= idx; i += 4) {
-        __m256d spread_vec = _mm256_load_pd(&spread[i]);
-        sum_spread = _mm256_add_pd(sum_spread, spread_vec);
-        sum_squared_spread = _mm256_add_pd(sum_squared_spread, _mm256_mul_pd(spread_vec, spread_vec));
+
+    if (z_score > 1.0) {
+        //check[0]++;  // Long and Short
+    } else if (z_score < -1.0) {
+        //check[1]++;  // Short and Long
+    } else if (std::abs(z_score) < 0.8) {
+        //check[2]++;  // Close positions
+    } else {
+        //check[3]++;  // No signal
     }
 
-    double temp[4];
-    _mm256_store_pd(temp, sum_spread);
-    double mean = (temp[0] + temp[1] + temp[2] + temp[3]) / N;
-
-    _mm256_store_pd(temp, sum_squared_spread);
-    double stddev = std::sqrt((temp[0] + temp[1] + temp[2] + temp[3]) / N - mean * mean);
-
-    for (size_t i = N; i < stock1_prices.size(); ++i) {
-        const int idx = (i - 1) * 2;
+#pragma omp simd
+    for (size_t i = N+1; i < stock1_prices.size(); ++i) {
+        const int idx = (i-1)*2;
+        double mean = (spread[idx] - spread[idx-(N*2)])/ N;
+        double stddev = std::sqrt((spread[idx +1] - spread[idx+1-(N*2)])/ N - mean * mean);
         double current_spread = stock1_prices[i] - stock2_prices[i];
-
-        __m256d spread_vec = _mm256_load_pd(&spread[idx - (N * 2)]);
-        __m256d squared_spread_vec = _mm256_load_pd(&spread[idx + 1 - (N * 2)]);
-
-        sum_spread = _mm256_sub_pd(sum_spread, spread_vec);
-        sum_squared_spread = _mm256_sub_pd(sum_squared_spread, squared_spread_vec);
-
-        spread_vec = _mm256_set1_pd(current_spread);
-        sum_spread = _mm256_add_pd(sum_spread, spread_vec);
-        sum_squared_spread = _mm256_add_pd(sum_squared_spread, _mm256_mul_pd(spread_vec, spread_vec));
-
-        _mm256_store_pd(temp, sum_spread);
-        mean = (temp[0] + temp[1] + temp[2] + temp[3]) / N;
-
-        _mm256_store_pd(temp, sum_squared_spread);
-        stddev = std::sqrt((temp[0] + temp[1] + temp[2] + temp[3]) / N - mean * mean);
-
         double z_score = (current_spread - mean) / stddev;
 
+
         if (z_score > 1.0) {
-            // Long and Short
+            //check[0]++;  // Long and Short
         } else if (z_score < -1.0) {
-            // Short and Long
+            //check[1]++;  // Short and Long
         } else if (std::abs(z_score) < 0.8) {
-            // Close positions
+            //check[2]++;  // Close positions
         } else {
-            // No signal
+            //check[3]++;  // No signal
         }
+
     }
+    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+
 }
 
 
