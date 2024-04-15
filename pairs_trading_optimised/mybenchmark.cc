@@ -72,9 +72,9 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         spread[idx + 1] = (current_spread * current_spread) + spread[idx - 1];
     }
 
-    const size_t idx_n = (N - 1) * 2;
+    /*const size_t idx_n = (N - 1) * 2;
     double mean = spread[idx_n] / N;
-    double stddev = std::sqrt(spread[idx_n + 1] / N - mean * mean);
+    double stddev = std::sqrt(spread[idx_n + 1] / N - mean * mean);*/
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
         const size_t idx_curr = (i - 1) * 2;
