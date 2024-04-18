@@ -5,7 +5,7 @@
 #include <string>
 #include <numeric>
 #include <cmath>
-//#include <immintrin.h>'
+#include <immintrin.h>'
 #include <iostream>
 #include <chrono>
 #include <array>
@@ -63,8 +63,6 @@ void avx_convolve(double* stock1_prices, double* stock2_prices, double spread[][
 // The convolution kernel must have non-negative size and fit with a single register.
     static_assert(KernelSize > 1 && KernelSize <= 16);
 
-
-    Copy code
 // The index of the kernel center must be valid.
     static_assert(KernelCenter >= 0 && KernelCenter < KernelSize);
 
