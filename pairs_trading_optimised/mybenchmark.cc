@@ -59,12 +59,12 @@ vector<double> readCSV(const string& filename){
 
 
 namespace simd {
-    using rf_256 = __m256;  // Using 256-bit wide registers
+    using rf_256 = __m256d;  // Using 256-bit wide registers
     using ri_256 = __m256i;  // Using 256-bit wide integer registers
 
     // Fused multiply-add function using AVX2
-    inline rf_256 fused_multiply_add(rf_256 a, rf_256 b, rf_256 c) {
-        return _mm256_fmadd_ps(a, b, c);
+    inline __m256d fused_multiply_add(__m256d a, __m256d b, __m256d c) {
+        return _mm256_fmadd_pd(a, b, c);
     }
 
     template<int KernelSize, int KernelCenter>
@@ -85,31 +85,28 @@ namespace simd {
         next1 = _mm256_loadu_ps(stock1_prices + 8);  // Adjusted stride for 256-bit
         next2 = _mm256_loadu_ps(stock2_prices + 8);  // Adjusted stride for 256-bit
 
-        for (auto pEnd = stock1_prices + len - 8; stock1_prices < pEnd; stock1_prices += 8, stock2_prices += 8) {  // Adjusted increment for 256-bit
-            double sum[2] = {0.0f, 0.0f};
+        for (int k = 0; k < KernelSize; ++k)
+        {
+            __m256d diff = _mm256_sub_pd(_mm256_set1_pd(stock1_prices[k]), _mm256_set1_pd(stock2_prices[k]));
+            __m256d diff_prev = _mm256_sub_pd(_mm256_set1_pd(stock1_prices[k-KernelSize]), _mm256_set1_pd(stock2_prices[k-KernelSize]));
 
-            for (int k = 0; k < KernelSize; ++k)
-            {
-                rf_256 diff = _mm256_sub_pd(_mm256_set1_pd(stock1_prices[k]), _mm256_set1_pd(stock2_prices[k]));
-                rf_256 diff_prev = _mm256_sub_pd(_mm256_set1_pd(stock1_prices[k-KernelSize]), _mm256_set1_pd(stock2_prices[k-KernelSize]));
+            // Manual reduction
+            __m128d sum_low = _mm256_extractf128_pd(fused_multiply_add(diff, _mm256_set1_pd(1.0), _mm256_set1_pd(sum[0])), 0);
+            __m128d sum_high = _mm256_extractf128_pd(fused_multiply_add(diff, _mm256_set1_pd(1.0), _mm256_set1_pd(sum[0])), 1);
+            sum[0] += _mm_cvtsd_f64(_mm_add_pd(sum_low, sum_high));
 
-                // Manual reduction
-                __m128d sum_low = _mm256_extractf128_pd(fused_multiply_add(diff, _mm256_set1_pd(1.0), _mm256_set1_pd(sum[0])), 0);
-                __m128d sum_high = _mm256_extractf128_pd(fused_multiply_add(diff, _mm256_set1_pd(1.0), _mm256_set1_pd(sum[0])), 1);
-                sum[0] += _mm_cvtsd_f64(_mm_add_pd(sum_low, sum_high));
+            sum_low = _mm256_extractf128_pd(fused_multiply_add(diff_prev, _mm256_set1_pd(-1.0), _mm256_set1_pd(sum[0])), 0);
+            sum_high = _mm256_extractf128_pd(fused_multiply_add(diff_prev, _mm256_set1_pd(-1.0), _mm256_set1_pd(sum[0])), 1);
+            sum[0] += _mm_cvtsd_f64(_mm_add_pd(sum_low, sum_high));
 
-                sum_low = _mm256_extractf128_pd(fused_multiply_add(diff_prev, _mm256_set1_pd(-1.0), _mm256_set1_pd(sum[0])), 0);
-                sum_high = _mm256_extractf128_pd(fused_multiply_add(diff_prev, _mm256_set1_pd(-1.0), _mm256_set1_pd(sum[0])), 1);
-                sum[0] += _mm_cvtsd_f64(_mm_add_pd(sum_low, sum_high));
+            sum_low = _mm256_extractf128_pd(fused_multiply_add(_mm256_mul_pd(diff, diff), _mm256_set1_pd(1.0), _mm256_set1_pd(sum[1])), 0);
+            sum_high = _mm256_extractf128_pd(fused_multiply_add(_mm256_mul_pd(diff, diff), _mm256_set1_pd(1.0), _mm256_set1_pd(sum[1])), 1);
+            sum[1] += _mm_cvtsd_f64(_mm_add_pd(sum_low, sum_high));
 
-                sum_low = _mm256_extractf128_pd(fused_multiply_add(_mm256_mul_pd(diff, diff), _mm256_set1_pd(1.0), _mm256_set1_pd(sum[1])), 0);
-                sum_high = _mm256_extractf128_pd(fused_multiply_add(_mm256_mul_pd(diff, diff), _mm256_set1_pd(1.0), _mm256_set1_pd(sum[1])), 1);
-                sum[1] += _mm_cvtsd_f64(_mm_add_pd(sum_low, sum_high));
-
-                sum_low = _mm256_extractf128_pd(fused_multiply_add(_mm256_mul_pd(diff_prev, diff_prev), _mm256_set1_pd(-1.0), _mm256_set1_pd(sum[1])), 0);
-                sum_high = _mm256_extractf128_pd(fused_multiply_add(_mm256_mul_pd(diff_prev, diff_prev), _mm256_set1_pd(-1.0), _mm256_set1_pd(sum[1])), 1);
-                sum[1] += _mm_cvtsd_f64(_mm_add_pd(sum_low, sum_high));
-            }
+            sum_low = _mm256_extractf128_pd(fused_multiply_add(_mm256_mul_pd(diff_prev, diff_prev), _mm256_set1_pd(-1.0), _mm256_set1_pd(sum[1])), 0);
+            sum_high = _mm256_extractf128_pd(fused_multiply_add(_mm256_mul_pd(diff_prev, diff_prev), _mm256_set1_pd(-1.0), _mm256_set1_pd(sum[1])), 1);
+            sum[1] += _mm_cvtsd_f64(_mm_add_pd(sum_low, sum_high));
+        }
 
             spread[stock1_prices - stock1_prices][0] = sum[0];
             spread[stock1_prices - stock1_prices][1] = sum[1];
