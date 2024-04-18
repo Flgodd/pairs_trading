@@ -63,7 +63,7 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    alignas(64) std::array<double, 9866> spread;
+    std::vector<std::atomic<double>> spread(9866);
     //std::array<double, 9866> spread;
     //vector<int> check(4, 0);
 
@@ -72,7 +72,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     auto spread_worker = [&](size_t start_index, size_t end_index) {
         for (size_t i = start_index; i < end_index; ++i) {
-            spread[i] = stock1_prices[i] - stock2_prices[i];
+            //spread[i] = stock1_prices[i] - stock2_prices[i];
+            spread[i].store(stock1_prices[i] - stock2_prices[i], std::memory_order_relaxed);
         }
     };
 
