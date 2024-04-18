@@ -81,6 +81,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     for (int i = 0; i < num_threads; ++i) {
         size_t start = i * work_chunk;
         size_t end = start + work_chunk;
+        cout<<start<<":"<<end<<endl;
         threads.emplace_back(spread_worker, start, end);
     }
 
