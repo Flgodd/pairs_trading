@@ -9,11 +9,11 @@
 #include <iostream>
 #include <chrono>
 #include <array>
-#include <thread>
 #include <omp.h>
 
 
 using namespace std;
+
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -25,8 +25,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "Intel.csv";
-    string ms_file = "AMD.csv";
+    string gs_file = "GS.csv";
+    string ms_file = "MS.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -50,7 +50,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[4]);
+        double adjClose = std::stod(row[5]);
         prices.push_back(adjClose);
     }
 
@@ -63,81 +63,51 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::vector<std::atomic<double>> spread(9866);
-    //std::array<double, 9866> spread;
+    std::array<double, 2512> spread;
     //vector<int> check(4, 0);
 
-    int num_threads = omp_get_max_threads();
-    vector<thread> threads;
+    spread[0] = stock1_prices[0] - stock2_prices[0];
+    spread[1] = (stock1_prices[0] - stock2_prices[0])*(stock1_prices[0] - stock2_prices[0]);
 
-    auto spread_worker = [&](size_t start_index, size_t end_index) {
-        for (size_t i = start_index; i < end_index; ++i) {
-            //spread[i] = stock1_prices[i] - stock2_prices[i];
-            spread[i].store(stock1_prices[i] - stock2_prices[i], std::memory_order_relaxed);
+#pragma omp simd
+    for(size_t i = 1; i < N; ++i) {
+        const int idx = i*2;
+        double current_spread = stock1_prices[i] - stock2_prices[i];
+        spread[idx] = current_spread + spread[idx - 2];
+        spread[idx +1] = (current_spread)*(current_spread) + spread[idx - 1];
+    }
+
+#pragma omp parallel for
+    for(size_t i = N; i<1256; i++){
+        const int idx = i*2;
+        double current_spread = stock1_prices[i] - stock2_prices[i];
+        double old_spread = stock1_prices[i-N] - stock2_prices[i-N];
+        spread[idx] = current_spread + spread[idx -2] - (old_spread);
+        spread[idx + 1] = (current_spread*current_spread) + spread[idx -1] - (old_spread*old_spread);
+
+    }
+
+#pragma omp parallel for
+    for (size_t i = N; i < stock1_prices.size(); ++i) {
+        const int idx = (i-1)*2;
+        double mean = spread[idx]/ N;
+        double stddev = std::sqrt(spread[idx +1]/ N - mean * mean);
+        double current_spread = stock1_prices[i] - stock2_prices[i];
+        double z_score = (current_spread - mean) / stddev;
+
+
+        if (z_score > 1.0) {
+            //check[0]++;  // Long and Short
+        } else if (z_score < -1.0) {
+            //check[1]++;  // Short and Long
+        } else if (std::abs(z_score) < 0.8) {
+            //check[2]++;  // Close positions
+        } else {
+            //check[3]++;  // No signal
         }
-    };
 
-    size_t work_chunk = 9866 / num_threads;
-    for (int i = 0; i < num_threads; ++i) {
-        size_t start = i * work_chunk;
-        size_t end = start + work_chunk;
-        cout<<start<<":"<<end<<endl;
-        threads.emplace_back(spread_worker, start, end);
     }
-
-    for (auto& th : threads) {
-        th.join();
-    }
-
-
-    threads.clear();
-
-    //std::mutex check_mutex;
-
-
-    auto main_worker = [&](size_t start_index, size_t end_index) {
-        for (size_t i = start_index; i < end_index; ++i) {
-            int start = i-N;
-
-            double sum = spread[start]+spread[start+1]+spread[start+2]+spread[start+3]
-                         + spread[start+4]+spread[start+5]+spread[start+6]+spread[start+7];
-
-            double sq_sum = (spread[start]*spread[start]) + (spread[start+1]*spread[start+1])
-                            + (spread[start+2]*spread[start+2]) + (spread[start+3]*spread[start+3])
-                            + (spread[start+4]*spread[start+4]) + (spread[start+5]*spread[start+5])
-                            + (spread[start+6]*spread[start+6]) + (spread[start+7]*spread[start+7]);
-
-            double mean = sum / N;
-            double stddev = std::sqrt(sq_sum / N - mean * mean);
-            double current_spread = spread[i];
-            double z_score = (current_spread - mean) / stddev;
-
-            //check_mutex.lock();
-            //std::lock_guard<std::mutex> lock(check_mutex);
-            if (z_score > 1.0) {
-                //check[0]++;
-            } else if (z_score < -1.0) {
-                //check[1]++;
-            } else if (std::abs(z_score) < 0.8) {
-                //check[2]++;
-            } else {
-                //check[3]++;
-            }
-            //check_mutex.unlock();
-        }
-    };
-
-    work_chunk = (stock1_prices.size()-N) / num_threads;
-    for (int i = 0; i < num_threads; ++i) {
-        size_t start = i * work_chunk+8;
-        size_t end = start + work_chunk;
-        threads.emplace_back(main_worker, start, end);
-    }
-
-    for (auto& th : threads) {
-        th.join();
-    }
-    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    // cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
