@@ -63,20 +63,14 @@ namespace simd {
     using ri_512 = __m512i;
     using msk_512 = uint32_t;
 
-    KEWB_FORCE_INLINE rf_512 fused_multiply_add(rf_512 a, rf_512 b, rf_512 c) {
+    inline rf_512 fused_multiply_add(rf_512 a, rf_512 b, rf_512 c) {
         return _mm512_fmadd_ps(a, b, c);
     }
 
     template<int KernelSize, int KernelCenter>
-    void avx_convolve(double* stock1_prices, double* stock2_prices, double spread[][2], size_t len)
-    {
-        // The convolution kernel must have non-negative size and fit with a single register.
+    void avx_convolve(const double* stock1_prices, const double* stock2_prices, double (*spread)[2], size_t len) {
         static_assert(KernelSize > 1 && KernelSize <= 16);
-
-        // The index of the kernel center must be valid.
         static_assert(KernelCenter >= 0 && KernelCenter < KernelSize);
-
-        // Convolution flips the kernel, so the kernel center must be adjusted.
         constexpr int WindowCenter = KernelSize - KernelCenter - 1;
 
         // Bottom of the input data window
@@ -127,7 +121,8 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<std::array<double, 2>, 1256> spread;
+    //std::array<std::array<double, 2>, 1256> spread;
+    double spread[1256][2];  // Changing to a simple C-style array for compatibility
 
     // Initialize the first N elements of the spread array
     for (size_t i = 0; i < N; ++i) {
@@ -137,7 +132,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     }
 
     // Call the avx_convolve function to calculate the spread for the remaining elements
-    simd::avx_convolve<N, N/2>(stock1_prices.data() + N, stock2_prices.data() + N, spread.data() + N, 1256 - N);
+    simd::avx_convolve<N, N/2>(&stock1_prices[N], &stock2_prices[N], spread + N, 1256 - N);
 
     for (size_t i = N; i < stock1_prices.size(); ++i) {
         double mean = spread[i-1][0] / N;
