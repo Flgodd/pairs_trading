@@ -1,5 +1,5 @@
 mybenchmark: mybenchmark.cc
-				g++ mybenchmark.cc -std=c++20 -mavx512f -mavx512dq -mfma -fopenmp -isystem benchmark/include -Lbenchmark/build/src -lbenchmark -lpthread -o mybenchmark
+				g++ mybenchmark.cc -std=c++20 -mavx2 -mfma -fopenmp -isystem benchmark/include -Lbenchmark/build/src -lbenchmark -lpthread -o mybenchmark
 #-O3 -march=native
 #				 g++ mybenchmark.cc -std=c++20 -isystem benchmark/include -Lbenchmark/build/src -lbenchmark -lpthread -o mybenchmark
 

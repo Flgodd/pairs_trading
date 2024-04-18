@@ -59,12 +59,12 @@ vector<double> readCSV(const string& filename){
 
 
 namespace simd {
-    using rf_512 = __m512;
-    using ri_512 = __m512i;
-    using msk_512 = uint32_t;
+    using rf_256 = __m256;  // Using 256-bit wide registers
+    using ri_256 = __m256i;  // Using 256-bit wide integer registers
 
-    inline rf_512 fused_multiply_add(rf_512 a, rf_512 b, rf_512 c) {
-        return _mm512_fmadd_ps(a, b, c);
+    // Fused multiply-add function using AVX2
+    inline rf_256 fused_multiply_add(rf_256 a, rf_256 b, rf_256 c) {
+        return _mm256_fmadd_ps(a, b, c);
     }
 
     template<int KernelSize, int KernelCenter>
@@ -73,34 +73,31 @@ namespace simd {
         static_assert(KernelCenter >= 0 && KernelCenter < KernelSize);
         constexpr int WindowCenter = KernelSize - KernelCenter - 1;
 
-        // Bottom of the input data window
-        rf_512 prev1, prev2;
-        // Middle of the input data windows
-        rf_512 curr1, curr2;
-        // Top of the input data window
-        rf_512 next1, next2;
+        // Adjusted for 256-bit wide registers
+        rf_256 prev1, prev2;
+        rf_256 curr1, curr2;
+        rf_256 next1, next2;
 
-        prev1 = _mm512_set1_ps(0.0f);
-        prev2 = _mm512_set1_ps(0.0f);
-        curr1 = _mm512_loadu_ps(stock1_prices);
-        curr2 = _mm512_loadu_ps(stock2_prices);
-        next1 = _mm512_loadu_ps(stock1_prices + 16);
-        next2 = _mm512_loadu_ps(stock2_prices + 16);
+        prev1 = _mm256_set1_ps(0.0f);
+        prev2 = _mm256_set1_ps(0.0f);
+        curr1 = _mm256_loadu_ps(stock1_prices);
+        curr2 = _mm256_loadu_ps(stock2_prices);
+        next1 = _mm256_loadu_ps(stock1_prices + 8);  // Adjusted stride for 256-bit
+        next2 = _mm256_loadu_ps(stock2_prices + 8);  // Adjusted stride for 256-bit
 
-        for (auto pEnd = stock1_prices + len - 16; stock1_prices < pEnd; stock1_prices += 16, stock2_prices += 16)
-        {
+        for (auto pEnd = stock1_prices + len - 8; stock1_prices < pEnd; stock1_prices += 8, stock2_prices += 8) {  // Adjusted increment for 256-bit
             double sum[2] = {0.0f, 0.0f};
 
             for (int k = 0; k < KernelSize; ++k)
             {
-                rf_512 diff = _mm512_sub_ps(_mm512_set1_ps(stock1_prices[k]), _mm512_set1_ps(stock2_prices[k]));
-                rf_512 diff_prev = _mm512_sub_ps(_mm512_set1_ps(stock1_prices[k-KernelSize]), _mm512_set1_ps(stock2_prices[k-KernelSize]));
+                rf_256 diff = _mm256_sub_ps(_mm256_set1_ps(stock1_prices[k]), _mm256_set1_ps(stock2_prices[k]));
+                rf_256 diff_prev = _mm256_sub_ps(_mm256_set1_ps(stock1_prices[k-KernelSize]), _mm256_set1_ps(stock2_prices[k-KernelSize]));
 
-                sum[0] = _mm512_reduce_add_ps(fused_multiply_add(diff, _mm512_set1_ps(1.0), _mm512_set1_ps(sum[0])));
-                sum[0] = _mm512_reduce_add_ps(fused_multiply_add(diff_prev, _mm512_set1_ps(-1.0), _mm512_set1_ps(sum[0])));
+                sum[0] += _mm256_reduce_add_ps(fused_multiply_add(diff, _mm256_set1_ps(1.0), _mm256_set1_ps(sum[0])));
+                sum[0] += _mm256_reduce_add_ps(fused_multiply_add(diff_prev, _mm256_set1_ps(-1.0), _mm256_set1_ps(sum[0])));
 
-                sum[1] = _mm512_reduce_add_ps(fused_multiply_add(_mm512_mul_ps(diff, diff), _mm512_set1_ps(1.0), _mm512_set1_ps(sum[1])));
-                sum[1] = _mm512_reduce_add_ps(fused_multiply_add(_mm512_mul_ps(diff_prev, diff_prev), _mm512_set1_ps(-1.0), _mm512_set1_ps(sum[1])));
+                sum[1] += _mm256_reduce_add_ps(fused_multiply_add(_mm256_mul_ps(diff, diff), _mm256_set1_ps(1.0), _mm256_set1_ps(sum[1])));
+                sum[1] += _mm256_reduce_add_ps(fused_multiply_add(_mm256_mul_ps(diff_prev, diff_prev), _mm256_set1_ps(-1.0), _mm256_set1_ps(sum[1])));
             }
 
             spread[stock1_prices - stock1_prices][0] = sum[0];
@@ -110,8 +107,8 @@ namespace simd {
             prev2 = curr2;
             curr1 = next1;
             curr2 = next2;
-            next1 = _mm512_loadu_ps(stock1_prices + 32);
-            next2 = _mm512_loadu_ps(stock2_prices + 32);
+            next1 = _mm256_loadu_ps(stock1_prices + 16);  // Adjusted stride for 256-bit
+            next2 = _mm256_loadu_ps(stock2_prices + 16);  // Adjusted stride for 256-bit
         }
     }
 }
