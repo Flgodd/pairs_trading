@@ -131,7 +131,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     //std::array<std::array<double, 2>, 1256> spread;
     double spread[1256][2];  // Changing to a simple C-style array for compatibility
-
+    vector<int> check(4);
     // Initialize the first N elements of the spread array
     for (size_t i = 0; i < N; ++i) {
         double current_spread = stock1_prices[i] - stock2_prices[i];
@@ -150,14 +150,19 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
         if (z_score > 1.0) {
             // Long and Short
+            check[0]++;
         } else if (z_score < -1.0) {
             // Short and Long
+            check[1]++;
         } else if (std::abs(z_score) < 0.8) {
             // Close positions
+            check[2]++;
         } else {
             // No signal
+            check[3]++;
         }
     }
+    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 }
 
 
