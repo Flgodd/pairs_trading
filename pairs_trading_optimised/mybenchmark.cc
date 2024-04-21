@@ -60,11 +60,11 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     static_assert(N % 4 == 0, "N should be multiple of 4 for AVX2 instructions");
     std::array<double, N> spread;
     size_t spread_index = 0;
-
+#pragma omp simd
     for(size_t i = 0; i < N; ++i) {
         spread[i] = stock1_prices[i] - stock2_prices[i];
     }
-
+#pragma omp simd
     for(size_t i = N; i < stock1_prices.size(); ++i) {
         __m256d sum_vec = _mm256_setzero_pd();
         __m256d sq_sum_vec = _mm256_setzero_pd();
