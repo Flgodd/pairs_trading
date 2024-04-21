@@ -225,13 +225,13 @@ __global__ void parallelized_zscore_calculation1(
     const double z_score = (current_spread - mean) / stddev;
 
     if (z_score > 1.0) {
-        //atomicAdd(&check[0], 1); // Long and Short
+        atomicAdd(&check[0], 1); // Long and Short
     } else if (z_score < -1.0) {
-        //atomicAdd(&check[1], 1); // Short and Long
+        atomicAdd(&check[1], 1); // Short and Long
     } else if (std::abs(z_score) < 0.8) {
-        //atomicAdd(&check[2], 1);  // Close positions
+        atomicAdd(&check[2], 1);  // Close positions
     } else {
-        //atomicAdd(&check[3], 1);  // No signal
+        atomicAdd(&check[3], 1);  // No signal
     }
 }
 
@@ -306,7 +306,7 @@ void calc_zz(const std::vector<double>& stock1_prices, const std::vector<double>
 
 // Print results
     //std::cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<std::endl;
-    //printf("d_check[0]:%d || d_check[1]:%d || d_check[2]:%d || d_check[3]:%d \n", check[0], check[1], check[2], check[3]);
+    printf("d_check[0]:%d || d_check[1]:%d || d_check[2]:%d || d_check[3]:%d \n", check[0], check[1], check[2], check[3]);
     cudaFree(d_stock1_prices);
     cudaFree(d_stock2_prices);
     cudaFree(d_spread_sum);
