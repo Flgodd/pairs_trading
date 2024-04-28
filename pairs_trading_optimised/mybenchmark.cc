@@ -5,15 +5,15 @@
 #include <string>
 #include <numeric>
 #include <cmath>
-//#include <immintrin.h>
+//#include <immintrin.h>'
 #include <iostream>
-#include <array>
 #include <chrono>
+#include <array>
 #include <omp.h>
 
 
-
 using namespace std;
+
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -25,8 +25,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "GS.csv";
-    string ms_file = "MS.csv";
+    string gs_file = "Intel.csv";
+    string ms_file = "AMD.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -50,7 +50,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[5]);
+        double adjClose = std::stod(row[4]);
         prices.push_back(adjClose);
     }
 
@@ -58,51 +58,44 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
-template<size_t N, size_t UnrollFactor>
-struct LoopUnroll {
-    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex, double& sum , double& sq_sum) {
-        spread[startIndex] = stock1_prices[startIndex] - stock2_prices[startIndex];
-        spread[startIndex + 1] = stock1_prices[startIndex + 1] - stock2_prices[startIndex + 1];
-        sum += spread[startIndex] + spread[startIndex+1];
-        sq_sum += (spread[startIndex] * spread[startIndex]) + (spread[startIndex+1] * spread[startIndex+1]);
-        LoopUnroll<N, UnrollFactor - 2>::computeSpread(spread, stock1_prices, stock2_prices, startIndex + 2, sum, sq_sum);
-    }
-};
-
-template<size_t N>
-struct LoopUnroll<N, 0> {
-    static void computeSpread(std::array<double, N>& spread, const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, size_t startIndex, double& sum, double& sq_sum) {
-        // Base case, do nothing
-    }
-};
-
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<double, N> spread;
-    size_t spread_index = 0;
+    std::array<double, 19732> spread;
+    //vector<int> check(4, 0);
 
-    double sum = 0.0;
-    double sq_sum = 0.0;
+    spread[0] = stock1_prices[0] - stock2_prices[0];
+    spread[1] = (stock1_prices[0] - stock2_prices[0])*(stock1_prices[0] - stock2_prices[0]);
 
-    LoopUnroll<N, N>::computeSpread(spread, stock1_prices, stock2_prices, 0, sum, sq_sum);
-
-    uint32_t d = N;
-    uint64_t c = UINT64_C (0xFFFFFFFFFFFFFFFF ) / d + 1;
 #pragma omp simd
-    for (size_t i = N; i < stock1_prices.size(); ++i) {
+    for(size_t i = 1; i < N; ++i) {
+        const int idx = i*2;
+        double current_spread = stock1_prices[i] - stock2_prices[i];
+        spread[idx] = current_spread + spread[idx - 2];
+        spread[idx +1] = (current_spread)*(current_spread) + spread[idx - 1];
+    }
 
-        double mean = sum / N;
-        double stddev = std::sqrt(sq_sum / N - mean * mean);
+#pragma omp parallel for simd
+    for(size_t i = N; i<9866; i++){
+        const int idx = i*2;
+        double current_spread = stock1_prices[i] - stock2_prices[i];
+        double old_spread = stock1_prices[i-N] - stock2_prices[i-N];
+        spread[idx] = current_spread + spread[idx -2] - (old_spread);
+        spread[idx + 1] = (current_spread*current_spread) + spread[idx -1] - (old_spread*old_spread);
+
+    }
+
+#pragma omp parallel for simd
+    for (size_t i = N; i < stock1_prices.size(); ++i) {
+        const int idx = (i-1)*2;
+        double mean = spread[idx]/ N;
+        double stddev = std::sqrt(spread[idx +1]/ N - mean * mean);
         double current_spread = stock1_prices[i] - stock2_prices[i];
         double z_score = (current_spread - mean) / stddev;
 
-        double old_value = spread[spread_index];
 
-
-        spread[spread_index] = current_spread;
         if (z_score > 1.0) {
             //check[0]++;  // Long and Short
         } else if (z_score < -1.0) {
@@ -113,14 +106,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
             //check[3]++;  // No signal
         }
 
-
-        sum += -old_value + current_spread;
-        sq_sum += -(old_value * old_value) + (current_spread * current_spread);
-
-        uint64_t lowbits = c * (spread_index + 1);
-        spread_index = (( __uint128_t ) lowbits * d) >> 64;
     }
-    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    // cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
