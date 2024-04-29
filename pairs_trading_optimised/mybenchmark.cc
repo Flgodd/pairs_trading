@@ -67,7 +67,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     std::array<double, 671025> spread_sum;
     std::array<double, 671025> spread_sq_sum;
-    //vector<int> check(4, 0);
+    vector<int> check(4, 0);
     //vector<thread> threads;
 
     spread_sum[0] = stock1_prices[0] - stock2_prices[0];
