@@ -9,11 +9,11 @@
 #include <iostream>
 #include <chrono>
 #include <array>
-#include <thread>
 #include <omp.h>
 
 
 using namespace std;
+
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -63,50 +63,51 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<double, 671025> spread;
+    std::array<double, 1342050> spread;
     //vector<int> check(4, 0);
 
+    spread[0] = stock1_prices[0] - stock2_prices[0];
+    spread[1] = (stock1_prices[0] - stock2_prices[0])*(stock1_prices[0] - stock2_prices[0]);
 
-#pragma omp parallel for
-    for (size_t i = 0; i < stock1_prices.size(); ++i) {
-        spread[i] = stock1_prices[i] - stock2_prices[i];
+#pragma omp simd
+    for(size_t i = 1; i < N; ++i) {
+        const int idx = i*2;
+        double current_spread = stock1_prices[i] - stock2_prices[i];
+        spread[idx] = current_spread + spread[idx - 2];
+        spread[idx +1] = (current_spread)*(current_spread) + spread[idx - 1];
     }
 
+#pragma omp parallel for simd
+    for(size_t i = N; i<671025; i++){
+        const int idx = i*2;
+        double current_spread = stock1_prices[i] - stock2_prices[i];
+        double old_spread = stock1_prices[i-N] - stock2_prices[i-N];
+        spread[idx] = current_spread + spread[idx -2] - (old_spread);
+        spread[idx + 1] = (current_spread*current_spread) + spread[idx -1] - (old_spread*old_spread);
 
+    }
 
-#pragma omp parallel for
+#pragma omp parallel for simd
     for (size_t i = N; i < stock1_prices.size(); ++i) {
-        int start = i-N;
-
-        double sum = spread[start]+spread[start+1]+spread[start+2]+spread[start+3]
-                     + spread[start+4]+spread[start+5]+spread[start+6]+spread[start+7];
-
-        double sq_sum = (spread[start]*spread[start]) + (spread[start+1]*spread[start+1])
-                        + (spread[start+2]*spread[start+2]) + (spread[start+3]*spread[start+3])
-                        + (spread[start+4]*spread[start+4]) + (spread[start+5]*spread[start+5])
-                        + (spread[start+6]*spread[start+6]) + (spread[start+7]*spread[start+7]);
-
-        double mean = sum / N;
-        double stddev = std::sqrt(sq_sum / N - mean * mean);
-        double current_spread = spread[i];
+        const int idx = (i-1)*2;
+        double mean = spread[idx]/ N;
+        double stddev = std::sqrt(spread[idx +1]/ N - mean * mean);
+        double current_spread = stock1_prices[i] - stock2_prices[i];
         double z_score = (current_spread - mean) / stddev;
 
-        //check_mutex.lock();
-        //std::lock_guard<std::mutex> lock(check_mutex);
+
         if (z_score > 1.0) {
-            //check[0]++;
+            //check[0]++;  // Long and Short
         } else if (z_score < -1.0) {
-            //check[1]++;
+            //check[1]++;  // Short and Long
         } else if (std::abs(z_score) < 0.8) {
-            //check[2]++;
+            //check[2]++;  // Close positions
         } else {
-            //check[3]++;
+            //check[3]++;  // No signal
         }
-        //check_mutex.unlock();
+
     }
-
-
-    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    // cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
