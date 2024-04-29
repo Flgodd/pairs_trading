@@ -60,16 +60,6 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
-/*void block_prefix_sum(const int start, const int end, const vector<double>& stock1_prices, const vector<double>& stock2_prices, array<double, 1256>& spread_sum, array<double, 1256>& spread_sq_sum) {
-
-    for (int i = start+1; i <= end; i++) {
-        const double current_spread = stock1_prices[i] - stock2_prices[i];
-        spread_sum[i] = current_spread + spread_sum[i - 1];
-        spread_sq_sum[i] = (current_spread * current_spread) + spread_sq_sum[i - 1];
-    }
-    return;
-}*/
-
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
@@ -77,7 +67,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     std::array<double, 1256> spread_sum;
     std::array<double, 1256> spread_sq_sum;
-    vector<int> check(4, 0);
+    //vector<int> check(4, 0);
     //vector<thread> threads;
 
     spread_sum[0] = stock1_prices[0] - stock2_prices[0];
@@ -93,7 +83,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         }
     }
 
-//#pragma omp parallel for
+#pragma omp parallel for
     for (size_t i = N; i < stock1_prices.size(); ++i) {
 
         const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;
@@ -102,17 +92,17 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         const double z_score = (current_spread - mean) / stddev;
 
         if (z_score > 1.0) {
-            check[0]++;  // Long and Short
+            //check[0]++;  // Long and Short
         } else if (z_score < -1.0) {
-            check[1]++;  // Short and Long
+            //check[1]++;  // Short and Long
         } else if (std::abs(z_score) < 0.8) {
-            check[2]++;  // Close positions
+            //check[2]++;  // Close positions
         } else {
-            check[3]++;  // No signal
+            //check[3]++;  // No signal
         }
 
     }
-    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
