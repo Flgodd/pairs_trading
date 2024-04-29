@@ -94,7 +94,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     }
 
 //#pragma omp parallel for
-    for (size_t i = N+1; i < stock1_prices.size(); ++i) {
+    for (size_t i = N; i < stock1_prices.size(); ++i) {
 
         const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;
         const double stddev = std::sqrt((spread_sq_sum[i-1] - spread_sq_sum[i-N-1])/ N - mean * mean);
