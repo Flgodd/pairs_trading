@@ -27,7 +27,7 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "RElIANCE.csv";
+    string gs_file = "RELIANCE.csv";
     string ms_file = "ONGC.csv";
 
     stock1_prices = readCSV(gs_file);
@@ -112,7 +112,7 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
     if (stock1_prices.empty() || stock2_prices.empty()) {
         read_prices();
     }
-    cout<<stock1_prices.size()<<":"<<stock2_prices.size()<<endl;
+    //cout<<stock1_prices.size()<<":"<<stock2_prices.size()<<endl;
     for (auto _ : state) {
         pairs_trading_strategy_optimized<N>(stock1_prices, stock2_prices);
     }
