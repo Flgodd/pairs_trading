@@ -164,7 +164,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     size_t spread_size = stock1_prices.size();
 
-    fillArrays(stock1_prices, stock2_prices, spread_sum_f, spread_sq_sum_f, spread_size);
+    //fillArrays(stock1_prices, stock2_prices, spread_sum_f, spread_sq_sum_f, spread_size);
 
     double *outGPU_bcao = new double[NN]();
     //float time_gpu_bcao = scan(outGPU_bcao, spread_sum_f, NN, true);
@@ -177,7 +177,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
 
     //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
-
+    cout<<spread_size<<endl;
 }
 
 /*template<size_t N>
