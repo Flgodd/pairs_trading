@@ -112,6 +112,7 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
     if (stock1_prices.empty() || stock2_prices.empty()) {
         read_prices();
     }
+    cout<<stock1_prices.size()<<":"<<stock2_prices.size()<<endl;
     for (auto _ : state) {
         pairs_trading_strategy_optimized<N>(stock1_prices, stock2_prices);
     }
