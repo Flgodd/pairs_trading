@@ -88,9 +88,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     }
 
-    std::mutex check_mutex;
 
-#pragma omp parallel for simd
+//#pragma omp parallel for simd
     for (size_t i = N; i < stock1_prices.size(); ++i) {
         const int idx = (i-1)*2;
         double mean = spread[idx]/ N;
@@ -98,8 +97,6 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         double current_spread = stock1_prices[i] - stock2_prices[i];
         double z_score = (current_spread - mean) / stddev;
 
-        check_mutex.lock();
-        std::lock_guard<std::mutex> lock(check_mutex);
         if (z_score > 1.0) {
             check[0]++;  // Long and Short
         } else if (z_score < -1.0) {
@@ -109,7 +106,6 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         } else {
             check[3]++;  // No signal
         }
-        check_mutex.unlock();
     }
      cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
