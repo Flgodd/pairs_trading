@@ -64,7 +64,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
     std::array<double, 2512> spread;
-    //vector<int> check(4, 0);
+    vector<int> check(4, 0);
 
     spread[0] = stock1_prices[0] - stock2_prices[0];
     spread[1] = (stock1_prices[0] - stock2_prices[0])*(stock1_prices[0] - stock2_prices[0]);
@@ -95,7 +95,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         double current_spread = stock1_prices[i] - stock2_prices[i];
         double z_score = (current_spread - mean) / stddev;
 
-
+        check_mutex.lock();
+        std::lock_guard<std::mutex> lock(check_mutex);
         if (z_score > 1.0) {
             check[0]++;  // Long and Short
         } else if (z_score < -1.0) {
@@ -105,7 +106,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         } else {
             check[3]++;  // No signal
         }
-
+        check_mutex.unlock();
     }
      cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
