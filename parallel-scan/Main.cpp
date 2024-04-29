@@ -1,4 +1,4 @@
-#include <benchmark/benchmark.h>
+//#include <benchmark/benchmark.h>
 #include <vector>
 #include <fstream>
 #include <sstream>
@@ -112,8 +112,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "GS.csv";
-    string ms_file = "MS.csv";
+    string gs_file = "RELIANCE.csv";
+    string ms_file = "ONGC.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -140,7 +140,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
         //chenge to 4 for intel and amd and 5 for GS and MS
-        double adjClose = std::stod(row[5]);
+        double adjClose = std::stod(row[1]);
         prices.push_back(adjClose);
     }
 
@@ -157,9 +157,9 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
     cudaEventRecord(start);*/
-    const int NN  = 1256;
-    double spread_sum_f[1256];
-    double spread_sq_sum_f[1256];
+    const int NN  = 671025;
+    double spread_sum_f[671025];
+    double spread_sq_sum_f[671025];
     vector<int> check(4, 0);
 
     size_t spread_size = stock1_prices.size();
@@ -180,7 +180,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
 }
 
-template<size_t N>
+/*template<size_t N>
 void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
     if (stock1_prices.empty() || stock2_prices.empty()) {
         read_prices();
@@ -192,12 +192,12 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
 
 BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 8);
 
-BENCHMARK_MAIN();
-/*
+BENCHMARK_MAIN();*/
+
 int main()
 {
     read_prices();
-    cout<<stock1_prices.size()<<":"<<stock2_prices.size()<<endl;
+    //cout<<stock1_prices.size()<<":"<<stock2_prices.size()<<endl;
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -211,4 +211,4 @@ int main()
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
 	return 0;
-}*/
+}
