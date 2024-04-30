@@ -26,8 +26,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "GS.csv";
-    string ms_file = "MS.csv";
+    string gs_file = "RELIANCE.csv";
+    string ms_file = "ONGC.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -51,7 +51,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[5]);
+        double adjClose = std::stod(row[1]);
         prices.push_back(adjClose);
     }
 
@@ -64,7 +64,7 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<double, 1256> spread;
+    std::array<double, 671025> spread;
     //vector<int> check(4, 0);
 
     vector<thread> threads;
@@ -75,7 +75,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         }
     };
 
-    size_t work_chunk = 1256 / NUM_THREADS;
+    size_t work_chunk = 671025 / NUM_THREADS;
     for (int i = 0; i < NUM_THREADS; ++i) {
         size_t start = i * work_chunk;
         size_t end = start + work_chunk;
