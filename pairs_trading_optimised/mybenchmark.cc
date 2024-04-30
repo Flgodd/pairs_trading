@@ -67,7 +67,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     std::array<double, 1256> spread;
     //vector<int> check(4, 0);
 
-    vector<thread> threads (NUM_THREADS);
+    vector<thread> threads;
 
     auto spread_worker = [&](size_t start_index, size_t end_index) {
         for (size_t i = start_index; i < end_index; ++i) {
