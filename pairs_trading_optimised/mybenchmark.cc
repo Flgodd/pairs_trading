@@ -25,8 +25,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "GS.csv";
-    string ms_file = "MS.csv";
+    string gs_file = "RELIANCE.csv";
+    string ms_file = "ONGC.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -50,7 +50,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[5]);
+        double adjClose = std::stod(row[1]);
         prices.push_back(adjClose);
     }
 
@@ -63,8 +63,8 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<double, 2512> spread;
-    //vector<int> check(4, 0);
+    std::array<double, 1342050> spread;
+    vector<int> check(4, 0);
 
     spread[0] = stock1_prices[0] - stock2_prices[0];
     spread[1] = (stock1_prices[0] - stock2_prices[0])*(stock1_prices[0] - stock2_prices[0]);
@@ -87,7 +87,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     }
 
-#pragma omp parallel for simd
+//#pragma omp parallel for simd
     for (size_t i = N; i < stock1_prices.size(); ++i) {
         const int idx = (i-1)*2;
         double mean = spread[idx]/ N;
@@ -97,17 +97,17 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
 
         if (z_score > 1.0) {
-            //check[0]++;  // Long and Short
+            check[0]++;  // Long and Short
         } else if (z_score < -1.0) {
-            //check[1]++;  // Short and Long
+            check[1]++;  // Short and Long
         } else if (std::abs(z_score) < 0.8) {
-            //check[2]++;  // Close positions
+            check[2]++;  // Close positions
         } else {
-            //check[3]++;  // No signal
+            check[3]++;  // No signal
         }
 
     }
-    // cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+     cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
