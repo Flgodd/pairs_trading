@@ -2,12 +2,12 @@
 #include <stdlib.h>
 #include "papi.h"
 
-#define NUM_EVENTS 2
+#define NUM_EVENTS 1
 #define SIZE 1024
 #define REPS 10000
 
 int main() {
-    int Events[NUM_EVENTS] = {PAPI_L1_DCM, PAPI_L1_ICM};  // L1 data and instruction cache misses
+    int Events[NUM_EVENTS] = {PAPI_L1_DCM};  // Level 1 data cache misses
     long long values[NUM_EVENTS];
     int retval, EventSet = PAPI_NULL;
 
@@ -24,9 +24,9 @@ int main() {
         return 1;
     }
 
-    // Add L1 cache miss events to the Event Set
-    if (PAPI_add_events(EventSet, Events, NUM_EVENTS) != PAPI_OK) {
-        fprintf(stderr, "PAPI add events error!\n");
+    // Add L1 data cache miss event to the Event Set
+    if (PAPI_add_event(EventSet, PAPI_L1_DCM) != PAPI_OK) {
+        fprintf(stderr, "Error adding PAPI_L1_DCM\n");
         return 1;
     }
 
@@ -46,7 +46,6 @@ int main() {
 
     // Report results
     printf("L1 Data Cache Misses: %lld\n", values[0]);
-    printf("L1 Instruction Cache Misses: %lld\n", values[1]);
 
     // Cleanup
     PAPI_cleanup_eventset(EventSet);
