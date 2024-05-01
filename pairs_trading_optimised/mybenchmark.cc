@@ -113,7 +113,17 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     spread_sum[0] = stock1_prices[0] - stock2_prices[0];
     spread_sq_sum[0] = (stock1_prices[0] - stock2_prices[0]) * (stock1_prices[0] - stock2_prices[0]);
 
-    calculate_spreads(stock1_prices, stock2_prices, spread_sum, spread_sq_sum);
+    const int n = stock1_prices.size();
+    const int log2n = static_cast<int>(std::log2(n));
+
+#pragma omp parallel for reduction(+:spread_sum[:n], spread_sq_sum[:n])
+    for (int d = 1; d <= log2n; d++) {
+        for (int k = (1 << d); k < n; k++) {
+            const double current_spread = stock1_prices[k] - stock2_prices[k];
+            spread_sum[k] = current_spread + spread_sum[k - (1 << (d-1))];
+            spread_sq_sum[k] = (current_spread * current_spread) + spread_sq_sum[k - (1 << (d-1))];
+        }
+    }
 
 //#pragma omp parallel for
     for (size_t i = N; i < stock1_prices.size(); ++i) {
