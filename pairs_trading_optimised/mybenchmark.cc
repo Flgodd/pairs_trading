@@ -71,6 +71,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         const int idx = i*2;
         double current_spread = 0;
         double current_sq_spread = 0;
+#pragma omp simd
         for(int j = i-N; j<i; j++) {
             current_spread += stock1_prices[j] - stock2_prices[j];
             current_sq_spread += (stock1_prices[j] - stock2_prices[j])*(stock1_prices[j] - stock2_prices[j]);
