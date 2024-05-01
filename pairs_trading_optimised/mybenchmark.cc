@@ -12,7 +12,8 @@
 #include <thread>
 #include <omp.h>
 
-#define NUM_THREADS omp_get_max_threads()
+#define NUM_THREADS 256
+
 
 using namespace std;
 
@@ -64,75 +65,42 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<double, 671025> spread;
+    std::array<double, 671025> spread_sum;
+    std::array<double, 671025> spread_sq_sum;
     //vector<int> check(4, 0);
+    //vector<thread> threads;
 
-    vector<thread> threads;
+    spread_sum[0] = stock1_prices[0] - stock2_prices[0];
+    spread_sq_sum[0] = (stock1_prices[0] - stock2_prices[0]) * (stock1_prices[0] - stock2_prices[0]);
 
-    auto spread_worker = [&](size_t start_index, size_t end_index) {
-        for (size_t i = start_index; i < end_index; ++i) {
-            spread[i] = stock1_prices[i] - stock2_prices[i];
+//#pragma omp parallel
+  //  {
+//#pragma omp for
+        for (int i = 1; i < stock1_prices.size(); i++) {
+            const double current_spread = stock1_prices[i] - stock2_prices[i];
+            spread_sum[i] = current_spread + spread_sum[i - 1];
+            spread_sq_sum[i] = (current_spread * current_spread) + spread_sq_sum[i - 1];
         }
-    };
+   // }
 
-    size_t work_chunk = 671025 / NUM_THREADS;
-    for (int i = 0; i < NUM_THREADS; ++i) {
-        size_t start = i * work_chunk;
-        size_t end = start + work_chunk;
-        threads.emplace_back(spread_worker, start, end);
-    }
+#pragma omp parallel for
+    for (size_t i = N; i < stock1_prices.size(); ++i) {
 
-    for (auto& th : threads) {
-        th.join();
-    }
+        const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;
+        const double stddev = std::sqrt((spread_sq_sum[i-1] - spread_sq_sum[i-N-1])/ N - mean * mean);
+        const double current_spread = stock1_prices[i] - stock2_prices[i];
+        const double z_score = (current_spread - mean) / stddev;
 
-
-    threads.clear();
-
-    //std::mutex check_mutex;
-
-
-    auto main_worker = [&](size_t start_index, size_t end_index) {
-        for (size_t i = start_index; i < end_index; ++i) {
-            int start = i-N;
-
-            double sum = spread[start]+spread[start+1]+spread[start+2]+spread[start+3]
-                         + spread[start+4]+spread[start+5]+spread[start+6]+spread[start+7];
-
-            double sq_sum = (spread[start]*spread[start]) + (spread[start+1]*spread[start+1])
-                            + (spread[start+2]*spread[start+2]) + (spread[start+3]*spread[start+3])
-                            + (spread[start+4]*spread[start+4]) + (spread[start+5]*spread[start+5])
-                            + (spread[start+6]*spread[start+6]) + (spread[start+7]*spread[start+7]);
-
-            double mean = sum / N;
-            double stddev = std::sqrt(sq_sum / N - mean * mean);
-            double current_spread = spread[i];
-            double z_score = (current_spread - mean) / stddev;
-
-            //check_mutex.lock();
-            //std::lock_guard<std::mutex> lock(check_mutex);
-            if (z_score > 1.0) {
-                //check[0]++;
-            } else if (z_score < -1.0) {
-                //check[1]++;
-            } else if (std::abs(z_score) < 0.8) {
-                //check[2]++;
-            } else {
-                //check[3]++;
-            }
-            //check_mutex.unlock();
+        if (z_score > 1.0) {
+            //check[0]++;  // Long and Short
+        } else if (z_score < -1.0) {
+            //check[1]++;  // Short and Long
+        } else if (std::abs(z_score) < 0.8) {
+            //check[2]++;  // Close positions
+        } else {
+            //check[3]++;  // No signal
         }
-    };
 
-    work_chunk = (stock1_prices.size()-N) / NUM_THREADS;
-    for (int i = 0; i < NUM_THREADS; ++i) {
-        size_t start = i * work_chunk+8;
-        size_t end = start + work_chunk;
-        threads.emplace_back(main_worker, start, end);
-    }
-
-    for (auto& th : threads) {
-        th.join();
     }
     //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
@@ -144,6 +112,7 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
     if (stock1_prices.empty() || stock2_prices.empty()) {
         read_prices();
     }
+    //cout<<stock1_prices.size()<<":"<<stock2_prices.size()<<endl;
     for (auto _ : state) {
         pairs_trading_strategy_optimized<N>(stock1_prices, stock2_prices);
     }
