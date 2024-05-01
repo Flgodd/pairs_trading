@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 #define CACHE_LINE_SIZE 64 // Cache line size in bytes
