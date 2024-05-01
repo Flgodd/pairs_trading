@@ -27,8 +27,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "Intel.csv";
-    string ms_file = "AMD.csv";
+    string gs_file = "GS.csv";
+    string ms_file = "MS.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -52,7 +52,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[4]);
+        double adjClose = std::stod(row[5]);
         prices.push_back(adjClose);
     }
 
@@ -105,8 +105,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     //std::array<double, 9866> spread_sum;
     //std::array<double, 9866> spread_sq_sum;
-    vector<double> spread_sum(9866);
-    vector<double> spread_sq_sum(9866);
+    vector<double> spread_sum(1256);
+    vector<double> spread_sq_sum(1256);
     vector<int> check(4, 0);
     //vector<thread> threads;
 
