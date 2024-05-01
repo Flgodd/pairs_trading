@@ -9,13 +9,11 @@
 #include <iostream>
 #include <chrono>
 #include <array>
-#include <thread>
 #include <omp.h>
-
-#define NUM_THREADS 256
 
 
 using namespace std;
+
 
 std::vector<double> stock1_prices;
 std::vector<double> stock2_prices;
@@ -61,90 +59,48 @@ vector<double> readCSV(const string& filename){
 }
 
 
-void calculate_spreads(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices, std::vector<double>& spread_sum, std::vector<double>& spread_sq_sum) {
-    int n = stock1_prices.size();
-    int num_threads;
-#pragma omp parallel
-    {
-        num_threads = omp_get_num_threads();
-    }
-    std::vector<double> local_starts(num_threads), local_sq_starts(num_threads);
-
-    // Calculate the starting sums for each block
-    local_starts[0] = spread_sum[0];
-    local_sq_starts[0] = spread_sq_sum[0];
-    for (int i = 1; i < num_threads; i++) {
-        int start_index = i * (n / num_threads);
-        local_starts[i] = local_starts[i - 1] + stock1_prices[start_index] - stock2_prices[start_index] + spread_sum[start_index - 1];
-        local_sq_starts[i] = local_sq_starts[i - 1] + (stock1_prices[start_index] - stock2_prices[start_index]) * (stock1_prices[start_index] - stock2_prices[start_index]) + spread_sq_sum[start_index - 1];
-    }
-
-#pragma omp parallel
-    {
-        int thread_id = omp_get_thread_num();
-        int block_size = n / num_threads;
-        int start = thread_id * block_size;
-        int end = (thread_id == num_threads - 1) ? n : start + block_size;
-
-        // If not the first block, initialize with the calculated start values
-        if (start != 0) {
-            spread_sum[start] = local_starts[thread_id];
-            spread_sq_sum[start] = local_sq_starts[thread_id];
-        }
-
-        for (int i = start + 1; i < end; i++) {
-            spread_sum[i] = (stock1_prices[i] - stock2_prices[i]) + spread_sum[i - 1];
-            spread_sq_sum[i] = (stock1_prices[i] - stock2_prices[i]) * (stock1_prices[i] - stock2_prices[i]) + spread_sq_sum[i - 1];
-        }
-    }
-}
-
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<double, 1256> spread_sum;
-    std::array<double, 1256> spread_sq_sum;
-    //vector<double> spread_sum(1256);
-    //vector<double> spread_sq_sum(1256);
-    vector<int> check(4, 0);
-    //vector<thread> threads;
+    std::array<double, 2512> spread;
+    //vector<int> check(4, 0);
 
-    spread_sum[0] = stock1_prices[0] - stock2_prices[0];
-    spread_sq_sum[0] = (stock1_prices[0] - stock2_prices[0]) * (stock1_prices[0] - stock2_prices[0]);
-
-    const int n = stock1_prices.size();
-    const int log2n = static_cast<int>(std::log2(n));
-
-#pragma omp parallel for //reduction(+:spread_sum[:n], spread_sq_sum[:n])
-    for (int d = 1; d <= log2n; d++) {
-        for (int k = (1 << d); k < n; k++) {
-            const double current_spread = stock1_prices[k] - stock2_prices[k];
-            spread_sum[k] = current_spread + spread_sum[k - (1 << (d-1))];
-            spread_sq_sum[k] = (current_spread * current_spread) + spread_sq_sum[k - (1 << (d-1))];
+#pragma omp parallel
+    for(size_t i = N; i < stock1_prices.size(); ++i) {
+        const int idx = i*2;
+        double current_spread = 0;
+        double current_sq_spread = 0;
+        for(int j = i-N; j<i; j++) {
+            current_spread += stock1_prices[j] - stock2_prices[j];
+            current_sq_spread += (stock1_prices[j] - stock2_prices[j])*(stock1_prices[j] - stock2_prices[j]);
         }
+        spread[idx] = current_spread;
+        spread[idx +1] = current_sq_spread;
     }
 
-//#pragma omp parallel for
-    for (size_t i = N; i < stock1_prices.size(); ++i) {
 
-        const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;
-        const double stddev = std::sqrt((spread_sq_sum[i-1] - spread_sq_sum[i-N-1])/ N - mean * mean);
-        const double current_spread = stock1_prices[i] - stock2_prices[i];
-        const double z_score = (current_spread - mean) / stddev;
+#pragma omp parallel for simd
+    for (size_t i = N; i < stock1_prices.size(); ++i) {
+        const int idx = (i-1)*2;
+        double mean = spread[idx]/ N;
+        double stddev = std::sqrt(spread[idx +1]/ N - mean * mean);
+        double current_spread = stock1_prices[i] - stock2_prices[i];
+        double z_score = (current_spread - mean) / stddev;
+
 
         if (z_score > 1.0) {
-            check[0]++;  // Long and Short
+            //check[0]++;  // Long and Short
         } else if (z_score < -1.0) {
-            check[1]++;  // Short and Long
+            //check[1]++;  // Short and Long
         } else if (std::abs(z_score) < 0.8) {
-            check[2]++;  // Close positions
+            //check[2]++;  // Close positions
         } else {
-            check[3]++;  // No signal
+            //check[3]++;  // No signal
         }
 
     }
-    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    // cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
@@ -154,7 +110,6 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
     if (stock1_prices.empty() || stock2_prices.empty()) {
         read_prices();
     }
-    //cout<<stock1_prices.size()<<":"<<stock2_prices.size()<<endl;
     for (auto _ : state) {
         pairs_trading_strategy_optimized<N>(stock1_prices, stock2_prices);
     }
