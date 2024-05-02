@@ -60,11 +60,42 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
+void parallelPrefixSum(std::vector<int>& x) {
+    int n = x.size();
+    int log2n = std::log2(n);
+
+#pragma omp parallel
+    {
+        for (int d = 0; d < log2n; ++d) {
+            int pow2d = std::pow(2, d);
+
+#pragma omp for
+            for (int k = pow2d; k < n; ++k) {
+                x[k] = x[k - pow2d] + x[k];
+            }
+        }
+    }
+}
+
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
+    std::vector<int> x = {1, 2, 3, 4, 5, 6, 7, 8};
 
+    std::cout << "Input array: ";
+    for (int i = 0; i < x.size(); ++i) {
+        std::cout << x[i] << " ";
+    }
+    std::cout << std::endl;
+
+    parallelPrefixSum(x);
+
+    std::cout << "Prefix sum: ";
+    for (int i = 0; i < x.size(); ++i) {
+        std::cout << x[i] << " ";
+    }
+    std::cout << std::endl;
     //std::array<double, 671025> spread_sum;
     //std::array<double, 671025> spread_sq_sum;
     vector<int> check(4, 0);
