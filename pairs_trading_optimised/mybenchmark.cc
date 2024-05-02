@@ -82,6 +82,9 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     }
     vector<double> spread_sum (1256*2);
     for(int i = N; i< stock1_prices.size(); i++){
+        __m256d sum_vec = _mm256_setzero_pd();
+        __m256d sq_sum_vec = _mm256_setzero_pd();
+
         for(size_t j = i-N; j < i; j += 4) {
             __m256d spread_vec = _mm256_loadu_pd(&spread[j]);
             sum_vec = _mm256_add_pd(sum_vec, spread_vec);
