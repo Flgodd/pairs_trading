@@ -61,8 +61,9 @@ vector<double> readCSV(const string& filename){
 }
 
 __m512d _mm512_slli_pd(__m512d x, int k) {
-    const __m512d ZERO = _mm512_setzero_pd();
-    return _mm512_alignr_pd(x, ZERO, 8 - k);
+    const __m512i idx = _mm512_set_epi64(7, 6, 5, 4, 3, 2, 1, 0);
+    const __m512i shifted_idx = _mm512_sub_epi64(idx, _mm512_set1_epi64(k));
+    return _mm512_permutexvar_pd(shifted_idx, x);
 }
 
 __m512d PrefixSum(__m512d x) {
