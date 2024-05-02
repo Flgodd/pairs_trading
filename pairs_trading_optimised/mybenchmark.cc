@@ -5,7 +5,7 @@
 #include <string>
 #include <numeric>
 #include <cmath>
-//#include <immintrin.h>'
+#include <immintrin.h>'
 #include <iostream>
 #include <chrono>
 #include <array>
@@ -60,6 +60,43 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
+__m512d _mm512_slli_pd(__m512d x, int k) {
+    const __m512d ZERO = _mm512_setzero_pd();
+    return _mm512_alignr_pd(x, ZERO, 8 - k);
+}
+
+__m512d PrefixSum(__m512d x) {
+    x = _mm512_add_pd(x, _mm512_slli_pd(x, 1));
+    x = _mm512_add_pd(x, _mm512_slli_pd(x, 2));
+    x = _mm512_add_pd(x, _mm512_slli_pd(x, 4));
+    return x; // local prefix sums
+}
+
+void ComputePrefixSum(std::array<double, 671025>& spread_sum) {
+    const int SIMD_WIDTH = 8; // Number of double elements in a 512-bit vector
+
+    // Process the array in chunks of SIMD_WIDTH
+    for (int i = 0; i < spread_sum.size(); i += SIMD_WIDTH) {
+        // Load SIMD_WIDTH elements into a vector
+        __m512d x = _mm512_loadu_pd(&spread_sum[i]);
+
+        // Compute local prefix sums
+        __m512d local_sums = PrefixSum(x);
+
+        // Store the local prefix sums back into the array
+        _mm512_storeu_pd(&spread_sum[i], local_sums);
+    }
+
+    // Perform global prefix sum across SIMD chunks
+    double sum = 0.0;
+    for (int i = 0; i < spread_sum.size(); i += SIMD_WIDTH) {
+        __m512d x = _mm512_loadu_pd(&spread_sum[i]);
+        __m512d global_sum = _mm512_set1_pd(sum);
+        __m512d result = _mm512_add_pd(x, global_sum);
+        _mm512_storeu_pd(&spread_sum[i], result);
+        sum += _mm512_reduce_add_pd(x);
+    }
+}
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
@@ -73,12 +110,13 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     spread_sum[0] = stock1_prices[0] - stock2_prices[0];
     spread_sq_sum[0] = (stock1_prices[0] - stock2_prices[0]) * (stock1_prices[0] - stock2_prices[0]);
 
-#pragma omp scan(+: spread_sum, spread_sq_sum)
     for (int i = 1; i < stock1_prices.size(); i++) {
         const double current_spread = stock1_prices[i] - stock2_prices[i];
-        spread_sum[i] = current_spread + spread_sum[i - 1];
+        spread_sum[i] = current_spread;
         spread_sq_sum[i] = (current_spread * current_spread) + spread_sq_sum[i - 1];
     }
+
+    ComputePrefixSum(spread_sum);
 
 //#pragma omp parallel for
     for (size_t i = N; i < stock1_prices.size(); ++i) {
