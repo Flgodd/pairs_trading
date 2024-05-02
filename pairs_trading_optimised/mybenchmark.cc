@@ -17,11 +17,11 @@
 
 using namespace std;
 
-std::vector<double> stock1_prices;
-std::vector<double> stock2_prices;
+std::vector<float> stock1_prices;
+std::vector<float> stock2_prices;
 
 
-vector<double> readCSV(const string& filename);
+vector float> readCSV(const string& filename);
 
 
 
@@ -36,8 +36,8 @@ void read_prices() {
 }
 
 
-vector<double> readCSV(const string& filename){
-    std::vector<double> prices;
+vector float> readCSV(const string& filename){
+    std::vector<float> prices;
     std::ifstream file(filename);
     std::string line;
 
@@ -52,7 +52,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[5]);
+         floatadjClose = std::stod(row[5]);
         prices.push_back(adjClose);
     }
 
@@ -62,13 +62,13 @@ vector<double> readCSV(const string& filename){
 
 
 template<size_t N>
-void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
+void pairs_trading_strategy_optimized(const std::vector<float>& stock1_prices, const std::vector float>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-//    std::array<double, 671025> spread_sum;
-//    std::array<double, 671025> spread_sq_sum;
-    vector<double> spread (1256);
-    //vector<double> spread_sq_sum (1256);
+//    std::array float, 671025> spread_sum;
+//    std::array float, 671025> spread_sq_sum;
+    vector float> spread (1256);
+    //vector float> spread_sq_sum (1256);
     vector<int> check(4, 0);
     //vector<thread> threads;
 
@@ -78,7 +78,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     for (int i = 0; i < stock1_prices.size(); i++) {
         spread[i] = stock1_prices[i] - stock2_prices[i];
     }
-    vector<double> spread_sum (1256*2);
+    vector float> spread_sum (1256*2);
 #pragma omp parallel for
     for(int i = N; i< stock1_prices.size(); i++){
         __m512d sum_vec = _mm512_setzero_pd();
@@ -101,10 +101,10 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 #pragma omp parallel for
     for (size_t i = N; i < stock1_prices.size(); ++i) {
         int idx = (i*2);
-        const double mean = (spread_sum[idx])/ N;
-        const double stddev = std::sqrt((spread_sum[idx+1])/ N - mean * mean);
-        const double current_spread = stock1_prices[i] - stock2_prices[i];
-        const double z_score = (current_spread - mean) / stddev;
+        const float mean = (spread_sum[idx])/ N;
+        const float stddev = std::sqrt((spread_sum[idx+1])/ N - mean * mean);
+        const float current_spread = stock1_prices[i] - stock2_prices[i];
+        const float z_score = (current_spread - mean) / stddev;
 
         if (z_score > 1.0) {
             //check[0]++;  // Long and Short
