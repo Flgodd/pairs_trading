@@ -1,4 +1,4 @@
-//#include <benchmark/benchmark.h>
+#include <benchmark/benchmark.h>
 #include <vector>
 #include <fstream>
 #include <sstream>
