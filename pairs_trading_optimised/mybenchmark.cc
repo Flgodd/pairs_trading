@@ -60,7 +60,7 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
-_m256d PrefixSum(__m256d x) {
+__m256d PrefixSum(__m256d x) {
     x = _mm256_add_pd(x, _mm256_permute4x64_pd(x, _MM_SHUFFLE(2, 1, 0, 3)));
     x = _mm256_add_pd(x, _mm256_permute4x64_pd(x, _MM_SHUFFLE(1, 0, 3, 2)));
     return x;
