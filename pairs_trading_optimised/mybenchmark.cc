@@ -62,16 +62,32 @@ vector<double> readCSV(const string& filename){
 
 void parallelPrefixSum(std::vector<int>& x) {
     int n = x.size();
-    int log2n = std::log2(n);
+    int log2n = std::ceil(std::log2(n));
 
 #pragma omp parallel
     {
+        int threadCount = omp_get_num_threads();
+        int threadId = omp_get_thread_num();
+
         for (int d = 0; d < log2n; ++d) {
             int pow2d = std::pow(2, d);
 
-#pragma omp for
-            for (int k = pow2d; k < n; ++k) {
-                x[k] = x[k - pow2d] + x[k];
+#pragma omp for schedule(static)
+            for (int k = threadId * (n / threadCount); k < (threadId + 1) * (n / threadCount); ++k) {
+                if (k >= pow2d && k < n) {
+                    x[k] = x[k - pow2d] + x[k];
+                }
+            }
+
+#pragma omp barrier
+
+            if (d == log2n - 1) {
+                for (int i = 1; i < threadCount; ++i) {
+                    if (threadId == i) {
+                        x[i * (n / threadCount)] += x[(i - 1) * (n / threadCount) + (n % threadCount)];
+                    }
+#pragma omp barrier
+                }
             }
         }
     }
