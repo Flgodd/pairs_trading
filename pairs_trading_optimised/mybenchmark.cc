@@ -27,8 +27,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "GS.csv";
-    string ms_file = "MS.csv";
+    string gs_file = "RELIANCE.csv";
+    string ms_file = "ONGC.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -52,7 +52,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[5]);
+        double adjClose = std::stod(row[1]);
         prices.push_back(adjClose);
     }
 
@@ -66,8 +66,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 //    std::array<double, 671025> spread_sum;
 //    std::array<double, 671025> spread_sq_sum;
     //vector<int> check(4, 0);
-    vector<double> spread_sum (1256);
-    vector<double> spread_sq_sum (1256);
+    vector<double> spread_sum (671025);
+    vector<double> spread_sq_sum (671025);
     //vector<thread> threads;
 #pragma omp parallel for
     for (size_t i = 0; i < stock1_prices.size(); ++i) {
