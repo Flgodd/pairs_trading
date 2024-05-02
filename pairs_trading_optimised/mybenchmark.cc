@@ -60,16 +60,14 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
-__m512i PrefixSum(__m512i x) {
-    x = _mm512_add_epi32(x, _mm512_slli_epi32(x, 1));
-    x = _mm512_add_epi32(x, _mm512_slli_epi32(x, 2));
-    x = _mm512_add_epi32(x, _mm512_slli_epi32(x, 4));
-    x = _mm512_add_epi32(x, _mm512_slli_epi32(x, 8));
+_m256d PrefixSum(__m256d x) {
+    x = _mm256_add_pd(x, _mm256_permute4x64_pd(x, _MM_SHUFFLE(2, 1, 0, 3)));
+    x = _mm256_add_pd(x, _mm256_permute4x64_pd(x, _MM_SHUFFLE(1, 0, 3, 2)));
     return x;
 }
 
 void ComputePrefixSum(std::vector<double>& spread_sum) {
-    const int simd_width = 16;  // Assuming AVX-512 with 16 32-bit elements per register
+    const int simd_width = 4;  // Assuming AVX2 with 4 64-bit elements per register
     const int size = spread_sum.size();
 
     // Pad the spread_sum vector to a multiple of simd_width
@@ -78,9 +76,9 @@ void ComputePrefixSum(std::vector<double>& spread_sum) {
 
     // Perform prefix sum using SIMD
     for (int i = 0; i < padded_size; i += simd_width) {
-        __m512i x = _mm512_loadu_si512((__m512i*)&spread_sum[i]);
-        __m512i prefix_sum = PrefixSum(x);
-        _mm512_storeu_si512((__m512i*)&spread_sum[i], prefix_sum);
+        __m256d x = _mm256_loadu_pd(&spread_sum[i]);
+        __m256d prefix_sum = PrefixSum(x);
+        _mm256_storeu_pd(&spread_sum[i], prefix_sum);
     }
 
     // Perform final prefix sum across SIMD blocks
