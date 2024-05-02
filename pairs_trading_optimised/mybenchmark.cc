@@ -77,6 +77,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     int len = stock1_prices.size();
     // 1 apart, 2 apart, 4 apart ...
+#pragma omp parallel for
     for (int apart=1; apart<len; apart*=2) {
 
         // Create a copy so that we can safely do the sum in parallel by
