@@ -62,13 +62,13 @@ __global__ void pairs_trading_kernel(const double* stock1_prices, const double* 
         double z_score = (current_spread - mean) / stddev;
 
         if (z_score > 1.0) {
-            atomicAdd(&check[0], 1);  // Long and Short
+            //atomicAdd(&check[0], 1);  // Long and Short
         } else if (z_score < -1.0) {
-            atomicAdd(&check[1], 1);  // Short and Long
+            //atomicAdd(&check[1], 1);  // Short and Long
         } else if (fabs(z_score) < 0.8) {
-            atomicAdd(&check[2], 1);  // Close positions
+            //atomicAdd(&check[2], 1);  // Close positions
         } else {
-            atomicAdd(&check[3], 1);  // No signal
+            //atomicAdd(&check[3], 1);  // No signal
         }
     }
 }
@@ -94,10 +94,10 @@ void pairs_trading_strategy_cuda(const std::vector<double>& stock1_prices, const
 
     cudaDeviceSynchronize();
 
-    std::vector<int> check(4);
-    cudaMemcpy(check.data(), d_check, 4 * sizeof(int), cudaMemcpyDeviceToHost);
+    //std::vector<int> check(4);
+    //cudaMemcpy(check.data(), d_check, 4 * sizeof(int), cudaMemcpyDeviceToHost);
 
-    std::cout << check[0] << ":" << check[1] << ":" << check[2] << ":" << check[3] << std::endl;
+    //std::cout << check[0] << ":" << check[1] << ":" << check[2] << ":" << check[3] << std::endl;
 
     cudaFree(d_stock1_prices);
     cudaFree(d_stock2_prices);
