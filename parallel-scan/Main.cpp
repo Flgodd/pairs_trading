@@ -112,8 +112,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "Intel.csv";
-    string ms_file = "AMD.csv";
+    string gs_file = "GS.csv";
+    string ms_file = "MS.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -140,7 +140,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
         //chenge to 4 for intel and amd and 5 for GS and MS
-        double adjClose = std::stod(row[4]);
+        double adjClose = std::stod(row[5]);
         prices.push_back(adjClose);
     }
 
@@ -157,9 +157,9 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
     cudaEventRecord(start);*/
-    const int NN  = 9866;
-    double spread_sum_f[9866];
-    double spread_sq_sum_f[9866];
+    const int NN  = 1256;
+    double spread_sum_f[1256];
+    double spread_sq_sum_f[1256];
     vector<int> check(4, 0);
 
     size_t spread_size = stock1_prices.size();
@@ -167,10 +167,10 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     fillArrays(stock1_prices, stock2_prices, spread_sum_f, spread_sq_sum_f, spread_size);
 
     double *outGPU_bcao = new double[NN]();
-    float time_gpu_bcao = scan(outGPU_bcao, spread_sum_f, NN, true);
+    float time_gpu_bcao = scan(outGPU_bcao, spread_sum_f, NN, false);
     //printResult("gpu bcao", spread_sum_f[NN - 1], time_gpu_bcao);
 
-    float time_gpu_bcao2 = scan(outGPU_bcao, spread_sq_sum_f, NN, true);
+    float time_gpu_bcao2 = scan(outGPU_bcao, spread_sq_sum_f, NN, false);
    //printResult("gpu bcao", spread_sq_sum_f[NN - 1], time_gpu_bcao2);
 
     calc_zz(stock1_prices,stock2_prices,spread_sum_f, spread_sq_sum_f,  check, spread_size);
