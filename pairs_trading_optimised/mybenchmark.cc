@@ -27,8 +27,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "GS.csv";
-    string ms_file = "MS.csv";
+    string gs_file = "RELIANCE.csv";
+    string ms_file = "ONGC.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -52,7 +52,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[5]);
+        double adjClose = std::stod(row[1]);
         prices.push_back(adjClose);
     }
 
@@ -60,41 +60,27 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
+
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
-//    std::array<double, 671025> spread_sum;
-//    std::array<double, 671025> spread_sq_sum;
+
+    std::array<double, 671025> spread_sum;
+    std::array<double, 671025> spread_sq_sum;
     vector<int> check(4, 0);
-    vector<double> spread_sum (1256);
-    vector<double> spread_sq_sum (1256);
     //vector<thread> threads;
-#pragma omp parallel for
-    for (size_t i = 0; i < stock1_prices.size(); ++i) {
-        spread_sum[i] = stock1_prices[i] - stock2_prices[i];
-        spread_sq_sum[i] = (stock1_prices[i] - stock2_prices[i])*(stock1_prices[i] - stock2_prices[i]);
+
+    spread_sum[0] = stock1_prices[0] - stock2_prices[0];
+    spread_sq_sum[0] = (stock1_prices[0] - stock2_prices[0]) * (stock1_prices[0] - stock2_prices[0]);
+
+#pragma omp parallel for scan(+: spread_sum, spread_sq_sum)
+    for (int i = 1; i < stock1_prices.size(); i++) {
+        const double current_spread = stock1_prices[i] - stock2_prices[i];
+        spread_sum[i] = current_spread + spread_sum[i - 1];
+        spread_sq_sum[i] = (current_spread * current_spread) + spread_sq_sum[i - 1];
     }
 
-    int len = stock1_prices.size();
-    // 1 apart, 2 apart, 4 apart ...
-    for (int apart=1; apart<len; apart*=2) {
-
-        // Create a copy so that we can safely do the sum in parallel by
-        // removing the intra-array dependency
-        vector<double> read = spread_sum;
-        vector<double> read2 = spread_sq_sum;
-
-        // Compute the sum of pairs of values
-#pragma omp parallel for
-        for (int i=apart; i<len; i++) {
-            spread_sum[i] += read[i-apart];
-            spread_sq_sum[i] += read2[i-apart];
-        }
-
-    }
-
-
-#pragma omp parallel for
+//#pragma omp parallel for
     for (size_t i = N; i < stock1_prices.size(); ++i) {
 
         const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;
@@ -103,17 +89,17 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         const double z_score = (current_spread - mean) / stddev;
 
         if (z_score > 1.0) {
-            //check[0]++;  // Long and Short
+            check[0]++;  // Long and Short
         } else if (z_score < -1.0) {
-            //check[1]++;  // Short and Long
+            check[1]++;  // Short and Long
         } else if (std::abs(z_score) < 0.8) {
-            //check[2]++;  // Close positions
+            check[2]++;  // Close positions
         } else {
-            //check[3]++;  // No signal
+            check[3]++;  // No signal
         }
 
     }
-    //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
+    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 
 }
 
