@@ -90,11 +90,11 @@ void pairs_trading_strategy_optimized(const std::vector<float>& stock1_prices, c
             sq_sum_vec = _mm512_fmadd_pd(spread_vec, spread_vec, sq_sum_vec);
         }
 
-        __m128d sum_vec_total = _mm512_reduce_add_pd(sum_vec);
-        __m128d sq_sum_vec_total = _mm512_reduce_add_pd(sq_sum_vec);
+        double sum_vec_total = _mm512_reduce_add_pd(sum_vec);
+        double sq_sum_vec_total = _mm512_reduce_add_pd(sq_sum_vec);
 
-        spread_sum[i * 2] = _mm_cvtsd_f64(sum_vec_total);
-        spread_sum[(i * 2) + 1] = _mm_cvtsd_f64(sq_sum_vec_total);
+        spread_sum[i * 2] = sum_vec_total;
+        spread_sum[(i * 2) + 1] = sq_sum_vec_total;
 
     }
 
