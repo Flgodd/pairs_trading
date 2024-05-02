@@ -60,51 +60,46 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
-__m512d _mm512_slli_pd(__m512d x, int k) {
-    const __m512i idx = _mm512_set_epi64(7, 6, 5, 4, 3, 2, 1, 0);
-    const __m512i shifted_idx = _mm512_sub_epi64(idx, _mm512_set1_epi64(k));
-    return _mm512_permutexvar_pd(shifted_idx, x);
+__m512i PrefixSum(__m512i x) {
+    x = _mm512_add_epi32(x, _mm512_slli_epi32(x, 1));
+    x = _mm512_add_epi32(x, _mm512_slli_epi32(x, 2));
+    x = _mm512_add_epi32(x, _mm512_slli_epi32(x, 4));
+    x = _mm512_add_epi32(x, _mm512_slli_epi32(x, 8));
+    return x;
 }
 
-__m512d PrefixSum(__m512d x) {
-    x = _mm512_add_pd(x, _mm512_slli_pd(x, 1));
-    x = _mm512_add_pd(x, _mm512_slli_pd(x, 2));
-    x = _mm512_add_pd(x, _mm512_slli_pd(x, 4));
-    return x; // local prefix sums
-}
+void ComputePrefixSum(std::vector<double>& spread_sum) {
+    const int simd_width = 16;  // Assuming AVX-512 with 16 32-bit elements per register
+    const int size = spread_sum.size();
 
-void ComputePrefixSum(std::array<double, 671025>& spread_sum) {
-    const int SIMD_WIDTH = 8; // Number of double elements in a 512-bit vector
+    // Pad the spread_sum vector to a multiple of simd_width
+    int padded_size = ((size + simd_width - 1) / simd_width) * simd_width;
+    spread_sum.resize(padded_size, 0.0);
 
-    // Process the array in chunks of SIMD_WIDTH
-    for (int i = 0; i < spread_sum.size(); i += SIMD_WIDTH) {
-        // Load SIMD_WIDTH elements into a vector
-        __m512d x = _mm512_loadu_pd(&spread_sum[i]);
-
-        // Compute local prefix sums
-        __m512d local_sums = PrefixSum(x);
-
-        // Store the local prefix sums back into the array
-        _mm512_storeu_pd(&spread_sum[i], local_sums);
+    // Perform prefix sum using SIMD
+    for (int i = 0; i < padded_size; i += simd_width) {
+        __m512i x = _mm512_loadu_si512((__m512i*)&spread_sum[i]);
+        __m512i prefix_sum = PrefixSum(x);
+        _mm512_storeu_si512((__m512i*)&spread_sum[i], prefix_sum);
     }
 
-    // Perform global prefix sum across SIMD chunks
-    double sum = 0.0;
-    for (int i = 0; i < spread_sum.size(); i += SIMD_WIDTH) {
-        __m512d x = _mm512_loadu_pd(&spread_sum[i]);
-        __m512d global_sum = _mm512_set1_pd(sum);
-        __m512d result = _mm512_add_pd(x, global_sum);
-        _mm512_storeu_pd(&spread_sum[i], result);
-        sum += _mm512_reduce_add_pd(x);
+    // Perform final prefix sum across SIMD blocks
+    for (int i = simd_width; i < padded_size; i += simd_width) {
+        spread_sum[i] += spread_sum[i - simd_width];
     }
+
+    // Truncate the padded elements
+    spread_sum.resize(size);
 }
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<double, 671025> spread_sum;
-    std::array<double, 671025> spread_sq_sum;
+//    std::array<double, 671025> spread_sum;
+//    std::array<double, 671025> spread_sq_sum;
+    vector<double> spread_sum (671025);
+    vector<double> spread_sq_sum (671025);
     vector<int> check(4, 0);
     //vector<thread> threads;
 
