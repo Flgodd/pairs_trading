@@ -21,7 +21,7 @@ std::vector<float> stock1_prices;
 std::vector<float> stock2_prices;
 
 
-vector float> readCSV(const string& filename);
+vector<float> readCSV(const string& filename);
 
 
 
@@ -36,7 +36,7 @@ void read_prices() {
 }
 
 
-vector float> readCSV(const string& filename){
+vector<float> readCSV(const string& filename){
     std::vector<float> prices;
     std::ifstream file(filename);
     std::string line;
@@ -52,7 +52,7 @@ vector float> readCSV(const string& filename){
             row.push_back(value);
         }
 
-         floatadjClose = std::stod(row[5]);
+        float adjClose = std::stod(row[5]);
         prices.push_back(adjClose);
     }
 
@@ -62,13 +62,13 @@ vector float> readCSV(const string& filename){
 
 
 template<size_t N>
-void pairs_trading_strategy_optimized(const std::vector<float>& stock1_prices, const std::vector float>& stock2_prices) {
+void pairs_trading_strategy_optimized(const std::vector<float>& stock1_prices, const std::vector<float>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-//    std::array float, 671025> spread_sum;
-//    std::array float, 671025> spread_sq_sum;
-    vector float> spread (1256);
-    //vector float> spread_sq_sum (1256);
+//    std::array<float, 671025> spread_sum;
+//    std::array<float, 671025> spread_sq_sum;
+    vector<float> spread (1256);
+    //vector<float> spread_sq_sum (1256);
     vector<int> check(4, 0);
     //vector<thread> threads;
 
@@ -78,7 +78,7 @@ void pairs_trading_strategy_optimized(const std::vector<float>& stock1_prices, c
     for (int i = 0; i < stock1_prices.size(); i++) {
         spread[i] = stock1_prices[i] - stock2_prices[i];
     }
-    vector float> spread_sum (1256*2);
+    vector<float> spread_sum (1256*2);
 #pragma omp parallel for
     for(int i = N; i< stock1_prices.size(); i++){
         __m512d sum_vec = _mm512_setzero_pd();
