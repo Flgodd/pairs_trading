@@ -60,91 +60,39 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
-void parallelPrefixSum(std::vector<int>& x) {
-    int n = x.size();
-    int log2n = std::ceil(std::log2(n));
-
-#pragma omp parallel
-    {
-        int threadCount = omp_get_num_threads();
-        int threadId = omp_get_thread_num();
-
-        for (int d = 0; d < log2n; ++d) {
-            int pow2d = std::pow(2, d);
-
-#pragma omp for schedule(static)
-            for (int k = threadId * (n / threadCount); k < (threadId + 1) * (n / threadCount); ++k) {
-                if (k >= pow2d && k < n) {
-                    x[k] = x[k - pow2d] + x[k];
-                }
-            }
-
-#pragma omp barrier
-
-            if (d == log2n - 1) {
-                for (int i = 1; i < threadCount; ++i) {
-                    if (threadId == i) {
-                        x[i * (n / threadCount)] += x[(i - 1) * (n / threadCount) + (n % threadCount)];
-                    }
-#pragma omp barrier
-                }
-            }
-        }
-    }
-}
-
-
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
-    std::vector<int> x = {1, 2, 3, 4, 5, 6, 7, 8};
-
-    std::cout << "Input array: ";
-    for (int i = 0; i < x.size(); ++i) {
-        std::cout << x[i] << " ";
-    }
-    std::cout << std::endl;
-
-    parallelPrefixSum(x);
-
-    std::cout << "Prefix sum: ";
-    for (int i = 0; i < x.size(); ++i) {
-        std::cout << x[i] << " ";
-    }
-    std::cout << std::endl;
-    //std::array<double, 671025> spread_sum;
-    //std::array<double, 671025> spread_sq_sum;
+//    std::array<double, 671025> spread_sum;
+//    std::array<double, 671025> spread_sq_sum;
     vector<int> check(4, 0);
+    vector<double> spread_sum;
+    vector<double> spread_sq_sum;
     //vector<thread> threads;
-
-    const int n = stock1_prices.size();
-    const int log2n = static_cast<int>(std::log2(n));
-
-    std::vector<double> spread_sum(n, 0.0);
-    std::vector<double> spread_sq_sum(n, 0.0);
-
-#pragma omp parallel
-    {
-        std::vector<double> local_spread_sum(n, 0.0);
-        std::vector<double> local_spread_sq_sum(n, 0.0);
-
-#pragma omp for
-        for (int d = 1; d <= log2n; d++) {
-            for (int k = (1 << d); k < n; k++) {
-                const double current_spread = stock1_prices[k] - stock2_prices[k];
-                local_spread_sum[k] = current_spread + local_spread_sum[k - (1 << (d-1))];
-                local_spread_sq_sum[k] = (current_spread * current_spread) + local_spread_sq_sum[k - (1 << (d-1))];
-            }
-        }
-
-#pragma omp critical
-        {
-            for (int i = 0; i < n; i++) {
-                spread_sum[i] += local_spread_sum[i];
-                spread_sq_sum[i] += local_spread_sq_sum[i];
-            }
-        }
+#pragma omp parallel for
+    for (size_t i = 0; i < stock1_prices.size(); ++i) {
+        spread[i] = stock1_prices[i] - stock2_prices[i];
+        spread_sq_sum[i] = (stock1_prices[i] - stock2_prices[i])*(stock1_prices[i] - stock2_prices[i]);
     }
+
+    int len = stock1_prices.size();
+    // 1 apart, 2 apart, 4 apart ...
+    for (int apart=1; apart<=len; apart*=2) {
+
+        // Create a copy so that we can safely do the sum in parallel by
+        // removing the intra-array dependency
+        vector<double> read = spread_sum;
+        vector<double> read2 = spread_sq_sum;
+
+        // Compute the sum of pairs of values
+#pragma omp parallel for
+        for (int i=apart; i<=len; i++) {
+            spread_sum[i] += read[i-apart];
+            spread_sq_sum[i] += read2[i-apart];
+        }
+
+    }
+
 
 //#pragma omp parallel for
     for (size_t i = N; i < stock1_prices.size(); ++i) {
