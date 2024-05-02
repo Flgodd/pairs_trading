@@ -60,35 +60,6 @@ vector<double> readCSV(const string& filename){
     return prices;
 }
 
-__m256d PrefixSum(__m256d x) {
-    x = _mm256_add_pd(x, _mm256_permute4x64_pd(x, _MM_SHUFFLE(2, 1, 0, 3)));
-    x = _mm256_add_pd(x, _mm256_permute4x64_pd(x, _MM_SHUFFLE(1, 0, 3, 2)));
-    return x;
-}
-
-void ComputePrefixSum(std::vector<double>& spread_sum) {
-    const int simd_width = 4;  // Assuming AVX2 with 4 64-bit elements per register
-    const int size = spread_sum.size();
-
-    // Pad the spread_sum vector to a multiple of simd_width
-    int padded_size = ((size + simd_width - 1) / simd_width) * simd_width;
-    spread_sum.resize(padded_size, 0.0);
-
-    // Perform prefix sum using SIMD
-    for (int i = 0; i < padded_size; i += simd_width) {
-        __m256d x = _mm256_loadu_pd(&spread_sum[i]);
-        __m256d prefix_sum = PrefixSum(x);
-        _mm256_storeu_pd(&spread_sum[i], prefix_sum);
-    }
-
-    // Perform final prefix sum across SIMD blocks
-    for (int i = simd_width; i < padded_size; i += simd_width) {
-        spread_sum[i] += spread_sum[i - simd_width];
-    }
-
-    // Truncate the padded elements
-    spread_sum.resize(size);
-}
 
 template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
@@ -96,27 +67,42 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
 //    std::array<double, 671025> spread_sum;
 //    std::array<double, 671025> spread_sq_sum;
-    vector<double> spread_sum (1256);
+    vector<double> spread (1256);
     vector<double> spread_sq_sum (1256);
     vector<int> check(4, 0);
     //vector<thread> threads;
 
-    spread_sum[0] = stock1_prices[0] - stock2_prices[0];
+    spread[0] = stock1_prices[0] - stock2_prices[0];
     spread_sq_sum[0] = (stock1_prices[0] - stock2_prices[0]) * (stock1_prices[0] - stock2_prices[0]);
 
     for (int i = 1; i < stock1_prices.size(); i++) {
         const double current_spread = stock1_prices[i] - stock2_prices[i];
-        spread_sum[i] = current_spread;
+        spread[i] = current_spread;
         spread_sq_sum[i] = (current_spread * current_spread) + spread_sq_sum[i - 1];
     }
+    vector<double> spread_sum (1256*2);
+    for(int i = N; i< stock1_prices.size(); i++){
+        for(size_t j = i-N; j < i; j += 4) {
+            __m256d spread_vec = _mm256_loadu_pd(&spread[j]);
+            sum_vec = _mm256_add_pd(sum_vec, spread_vec);
+            sq_sum_vec = _mm256_fmadd_pd(spread_vec, spread_vec, sq_sum_vec);
+            //sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
+        }
+        __m256d temp1 = _mm256_hadd_pd(sum_vec, sum_vec);
+        __m256d sum_vec_total = _mm256_add_pd(temp1, _mm256_permute2f128_pd(temp1, temp1, 0x1));
 
-    ComputePrefixSum(spread_sum);
+        __m256d temp2 = _mm256_hadd_pd(sq_sum_vec, sq_sum_vec);
+        __m256d sq_sum_vec_total = _mm256_add_pd(temp2, _mm256_permute2f128_pd(temp2, temp2, 0x1));
+
+        spread_sum[i*2] = _mm_cvtsd_f64(_mm256_castpd256_pd128(sum_vec_total));
+        spread_sum[(i*2) +1] = _mm_cvtsd_f64(_mm256_castpd256_pd128(sq_sum_vec_total));
+    }
 
 //#pragma omp parallel for
     for (size_t i = N; i < stock1_prices.size(); ++i) {
-
-        const double mean = (spread_sum[i-1] - spread_sum[i-N-1])/ N;
-        const double stddev = std::sqrt((spread_sq_sum[i-1] - spread_sq_sum[i-N-1])/ N - mean * mean);
+        int idx = (i*2)
+        const double mean = (spread_sum[idx])/ N;
+        const double stddev = std::sqrt((spread_sum[idx+1])/ N - mean * mean);
         const double current_spread = stock1_prices[i] - stock2_prices[i];
         const double z_score = (current_spread - mean) / stddev;
 
