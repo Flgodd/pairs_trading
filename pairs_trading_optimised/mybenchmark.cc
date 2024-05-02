@@ -66,8 +66,8 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 //    std::array<double, 671025> spread_sum;
 //    std::array<double, 671025> spread_sq_sum;
     vector<int> check(4, 0);
-    vector<double> spread_sum;
-    vector<double> spread_sq_sum;
+    vector<double> spread_sum (1256);
+    vector<double> spread_sq_sum (1256);
     //vector<thread> threads;
 #pragma omp parallel for
     for (size_t i = 0; i < stock1_prices.size(); ++i) {
@@ -77,7 +77,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
     int len = stock1_prices.size();
     // 1 apart, 2 apart, 4 apart ...
-    for (int apart=1; apart<=len; apart*=2) {
+    for (int apart=1; apart<len; apart*=2) {
 
         // Create a copy so that we can safely do the sum in parallel by
         // removing the intra-array dependency
@@ -86,7 +86,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
         // Compute the sum of pairs of values
 #pragma omp parallel for
-        for (int i=apart; i<=len; i++) {
+        for (int i=apart; i<len; i++) {
             spread_sum[i] += read[i-apart];
             spread_sq_sum[i] += read2[i-apart];
         }
