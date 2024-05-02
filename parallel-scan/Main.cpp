@@ -173,14 +173,13 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     float time_gpu_bcao2 = scan(outGPU_bcao, spread_sq_sum_f, NN, true);
    //printResult("gpu bcao", spread_sq_sum_f[NN - 1], time_gpu_bcao2);
 
-    //calc_zz(stock1_prices,stock2_prices,spread_sum_f, spread_sq_sum_f,  check, spread_size);
+    calc_zz(stock1_prices,stock2_prices,spread_sum_f, spread_sq_sum_f,  check, spread_size);
 
 
     //cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
-    cout<<spread_size<<endl;
 }
 
-/*template<size_t N>
+template<size_t N>
 void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
     if (stock1_prices.empty() || stock2_prices.empty()) {
         read_prices();
@@ -192,9 +191,9 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
 
 BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 8);
 
-BENCHMARK_MAIN();*/
+BENCHMARK_MAIN();
 
-int main()
+/*int main()
 {
     read_prices();
     //cout<<stock1_prices.size()<<":"<<stock2_prices.size()<<endl;
@@ -211,4 +210,4 @@ int main()
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
 	return 0;
-}
+}*/
