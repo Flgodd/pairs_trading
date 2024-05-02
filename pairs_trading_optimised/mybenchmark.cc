@@ -80,7 +80,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         spread[i] = current_spread;
     }
     vector<double> spread_sum (1256*2);
-#pragma omp parallel for
+//#pragma omp parallel for
     for(int i = N; i< stock1_prices.size(); i++){
         __m256d sum_vec = _mm256_setzero_pd();
         __m256d sq_sum_vec = _mm256_setzero_pd();
