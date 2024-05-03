@@ -27,8 +27,8 @@ vector<double> readCSV(const string& filename);
 
 void read_prices() {
 
-    string gs_file = "RELIANCE.csv";
-    string ms_file = "ONGC.csv";
+    string gs_file = "GS.csv";
+    string ms_file = "MS.csv";
 
     stock1_prices = readCSV(gs_file);
     stock2_prices = readCSV(ms_file);
@@ -52,7 +52,7 @@ vector<double> readCSV(const string& filename){
             row.push_back(value);
         }
 
-        double adjClose = std::stod(row[1]);
+        double adjClose = std::stod(row[5]);
         prices.push_back(adjClose);
     }
 
@@ -65,7 +65,7 @@ template<size_t N>
 void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices) {
     static_assert(N % 2 == 0, "N should be a multiple of 2 for NEON instructions");
 
-    std::array<double, 671025> spread;
+    std::array<double, 1256> spread;
 //    std::array<double, 671025> spread_sq_sum;
     //vector<double> spread (1256);
     //vector<double> spread_sq_sum (1256);
@@ -78,7 +78,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     for (int i = 0; i < stock1_prices.size(); i++) {
         spread[i] = stock1_prices[i] - stock2_prices[i];
     }
-    vector<double> spread_sum (671025*2);
+    vector<double> spread_sum (1256*2);
 #pragma omp parallel for
     for(int i = N; i< stock1_prices.size(); i++){
         __m256d sum_vec = _mm256_setzero_pd();
