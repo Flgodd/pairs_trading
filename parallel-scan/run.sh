@@ -1,12 +1,12 @@
 #!/bin/bash
+#PBS -q ampereq
+#PBS -l select=1
+#PBS -l walltime=00:10:00
+#PBS  ngpus=1
+#PBS  output=para.out
 
-#SBATCH --job-name=prefixPara
-#SBATCH --gres=gpu:0
-#SBATCH --partition=teach_gpu
-#SBATCH --account=COMS031424
-#SBATCH --output=lbm.out
-#SBATCH --time=00:30:00
-#SBATCH --nodes=1
+module load intel-parallel-studio-xe/compilers/64
+mpirun hostname
 
 
 echo Running on host `hostname`
@@ -17,15 +17,13 @@ echo This job runs on the following machines:
 echo `echo $SLURM_JOB_NODELIST | uniq`
 echo GPU number: $CUDA_VISIBLE_DEVICES
 
-export OCL_DEVICE=1
 
-module load libs/cuda/10.0-gcc-5.4.0-2.26
 module use /software/x86/tools/nvidia/hpc_sdk/modulefiles
-module load NVIDIA/nvhpc/21.9
+module load nvhpc/22.9
 
 #! Run the executable
 #./d2q9-bgk input_128x128.params obstacles_128x128.dat
 #./d2q9-bgk input_256x256.params obstacles_256x256.dat
 #./d2q9-bgk input_1024x1024.params obstacles_1024x1024.dat
-nvprof -o my_profile_report ./parallel_scan
+nvprof  ./parallel_scan
 
