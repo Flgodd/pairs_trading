@@ -108,13 +108,13 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
         double final_sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sum_vec_total));
         double final_sq_sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sq_sum_vec_total));
-        if(i == N+1){
+        /*if(i == N+1){
             double t = 0;
             for(double s : spread){
                 t += s;
             }
             cout<<t<<":"<<final_sum<<endl;
-        }
+        }*/
         double mean = final_sum / N;
         double stddev = std::sqrt(final_sq_sum / N - mean * mean);
 
@@ -125,16 +125,16 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
         if(z_score > 1.0) {
             // Long and Short
-            check[0]++;
+            //check[0]++;
         } else if(z_score < -1.0) {
             // Short and Long
-            check[1]++;
+            //check[1]++;
         } else if (std::abs(z_score) < 0.8) {
             // Close positions
-            check[2]++;
+            //check[2]++;
         } else {
             // No signal
-            check[3]++;
+            //check[3]++;
         }
 
         //if(i==8)cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<":"<<sum[0]<<endl;
