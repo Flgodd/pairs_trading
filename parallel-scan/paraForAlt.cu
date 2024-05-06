@@ -13,6 +13,53 @@
 const int N = 8;
 const int BLOCK_SIZE = 512;
 
+__global__ void pairs_trading_kernel_op(const double* stock1_prices, const double* stock2_prices, int* check, int size) {
+    extern __shared__ double spread[1280];  // Declare shared memory for spread calculations
+
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+
+    // Load data into shared memory with conflict-free offset
+    for (int i = idx; i < size; i += stride) {
+        if (i < 1256) {
+            int bank_offset = CONFLICT_FREE_OFFSET(i);
+            spread[i + bank_offset] = stock1_prices[i] - stock2_prices[i];  // Adjust index to avoid bank conflicts
+        }
+    }
+
+    __syncthreads();
+
+    // Continue with the rest of your computation, ensuring to adjust accesses to 'spread'
+    for (int i = idx + N; i < size; i += stride) {
+        double sum = 0.0;
+        double sq_sum = 0.0;
+        int start = i - N;
+
+        for (int j = 0; j < N; j++) {
+            int index = start + j;
+            int bank_offset = CONFLICT_FREE_OFFSET(index);
+            double val = spread[index + bank_offset];  // Adjust index to use conflict-free offset
+            sum += val;
+            sq_sum += val * val;
+        }
+
+        double mean = sum / N;
+        double stddev = sqrt(sq_sum / N - mean * mean);
+        double current_spread = stock1_prices[i] - stock2_prices[i];
+        double z_score = (current_spread - mean) / stddev;
+
+        // Update check values atomically to avoid race conditions
+        if (z_score > 1.0) {
+            atomicAdd(&check[0], 1);
+        } else if (z_score < -1.0) {
+            atomicAdd(&check[1], 1);
+        } else if (fabs(z_score) < 0.8) {
+            atomicAdd(&check[2], 1);
+        } else {
+            atomicAdd(&check[3], 1);
+        }
+    }
+}
 
 __global__ void pairs_trading_kernel(const double* stock1_prices, const double* stock2_prices, int* check, int size) {
     __shared__ double spread[1256];
@@ -90,14 +137,15 @@ void pairs_trading_strategy_cuda(const std::vector<double>& stock1_prices, const
 
     int grid_size = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-    pairs_trading_kernel<<<grid_size, BLOCK_SIZE>>>(d_stock1_prices, d_stock2_prices, d_check, size);
+    //pairs_trading_kernel<<<grid_size, BLOCK_SIZE>>>(d_stock1_prices, d_stock2_prices, d_check, size);
+    pairs_trading_kernel_op<<<grid_size, BLOCK_SIZE>>>(d_stock1_prices, d_stock2_prices, d_check, size);
 
     cudaDeviceSynchronize();
 
-    //std::vector<int> check(4);
-    //cudaMemcpy(check.data(), d_check, 4 * sizeof(int), cudaMemcpyDeviceToHost);
+    std::vector<int> check(4);
+    cudaMemcpy(check.data(), d_check, 4 * sizeof(int), cudaMemcpyDeviceToHost);
 
-    //std::cout << check[0] << ":" << check[1] << ":" << check[2] << ":" << check[3] << std::endl;
+    std::cout << check[0] << ":" << check[1] << ":" << check[2] << ":" << check[3] << std::endl;
 
     cudaFree(d_stock1_prices);
     cudaFree(d_stock2_prices);
