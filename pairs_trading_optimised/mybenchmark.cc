@@ -113,7 +113,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
             for(auto s : spread){
                 t += s;
             }
-            cout<<t<<":"<<final_sum<<endl
+            cout<<t<<":"<<final_sum<<endl;
         }
         double mean = final_sum / N;
         double stddev = std::sqrt(final_sq_sum / N - mean * mean);
