@@ -9,7 +9,9 @@
 #include <stdio.h>
 #include <omp.h>
 
-
+#define SHARED_MEMORY_BANKS 32
+#define LOG_MEM_BANKS 5
+#define CONFLICT_FREE_OFFSET(n) ((n) >> LOG_MEM_BANKS)
 const int N = 8;
 const int BLOCK_SIZE = 512;
 
