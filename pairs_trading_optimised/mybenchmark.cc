@@ -90,11 +90,10 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     spread[21] = stock1_prices[21] - stock2_prices[21];
     spread[22] = stock1_prices[22] - stock2_prices[22];
     spread[23] = stock1_prices[23] - stock2_prices[23];
-    spread[24] = stock1_prices[24] - stock2_prices[14];
+    spread[24] = stock1_prices[24] - stock2_prices[24];
     spread[25] = stock1_prices[25] - stock2_prices[25];
     spread[26] = stock1_prices[26] - stock2_prices[26];
     spread[27] = stock1_prices[27] - stock2_prices[27];
-    spread[28] = stock1_prices[28] - stock2_prices[28];
 
     //vector<int> check(4, 0);
     for(size_t i = N; i < stock1_prices.size(); ++i) {
@@ -145,13 +144,13 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
         double final_sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sum_vec_total));
         double final_sq_sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sq_sum_vec_total));
-        /*if(i == N+1){
+        if(i == N+1){
             double t = 0;
             for(double s : spread){
                 t += s;
             }
             cout<<t<<":"<<final_sum<<endl;
-        }*/
+        }
         double mean = final_sum / N;
         double stddev = std::sqrt(final_sq_sum / N - mean * mean);
 
