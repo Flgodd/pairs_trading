@@ -9,7 +9,7 @@
 #include <cmath>
 #include <chrono>
 #include <array>
-
+#include <immintrin.h>
 
 using namespace std;
 
