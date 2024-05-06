@@ -23,7 +23,7 @@ __global__ void pairs_trading_kernel_op(const double* stock1_prices, const doubl
 
     // Load data into shared memory with conflict-free offset
     for (int i = idx; i < size; i += stride) {
-        if (i >= size) return;
+        //if (i >= size) return;
         if (i < 1256) {
             int bank_offset = CONFLICT_FREE_OFFSET(i);
             spread[i + bank_offset] = stock1_prices[i] - stock2_prices[i];  // Adjust index to avoid bank conflicts
@@ -54,13 +54,13 @@ __global__ void pairs_trading_kernel_op(const double* stock1_prices, const doubl
 
         // Update check values atomically to avoid race conditions
         if (z_score > 1.0) {
-            atomicAdd(&check[0], 1);
+            //atomicAdd(&check[0], 1);
         } else if (z_score < -1.0) {
-            atomicAdd(&check[1], 1);
+            //atomicAdd(&check[1], 1);
         } else if (fabs(z_score) < 0.8) {
-            atomicAdd(&check[2], 1);
+            //atomicAdd(&check[2], 1);
         } else {
-            atomicAdd(&check[3], 1);
+            //atomicAdd(&check[3], 1);
         }
     }
 }
@@ -142,15 +142,15 @@ void pairs_trading_strategy_cuda(const std::vector<double>& stock1_prices, const
     int grid_size = (size + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
     //pairs_trading_kernel<<<grid_size, BLOCK_SIZE>>>(d_stock1_prices, d_stock2_prices, d_check, size);
-    int shared_mem_size = 1256 * sizeof(double);
+    int shared_mem_size = size * sizeof(double);
     pairs_trading_kernel_op<<<grid_size, BLOCK_SIZE, shared_mem_size>>>(d_stock1_prices, d_stock2_prices, d_check, size);
 
     cudaDeviceSynchronize();
 
-    std::vector<int> check(4);
-    cudaMemcpy(check.data(), d_check, 4 * sizeof(int), cudaMemcpyDeviceToHost);
+    //std::vector<int> check(4);
+    //cudaMemcpy(check.data(), d_check, 4 * sizeof(int), cudaMemcpyDeviceToHost);
 
-    std::cout << check[0] << ":" << check[1] << ":" << check[2] << ":" << check[3] << std::endl;
+    //std::cout << check[0] << ":" << check[1] << ":" << check[2] << ":" << check[3] << std::endl;
 
     cudaFree(d_stock1_prices);
     cudaFree(d_stock2_prices);
