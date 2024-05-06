@@ -63,7 +63,8 @@ struct LoopUnroller {
         constexpr size_t j = Index * 4;
         __m256d spread_vec = _mm256_loadu_pd(&spread[j]);
         sum_vec = _mm256_add_pd(sum_vec, spread_vec);
-        sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
+        sq_sum_vec = _mm256_fmadd_pd(spread_vec, spread_vec, sq_sum_vec);
+        //sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
         LoopUnroller<Index - 1, N>::unroll(spread, sum_vec, sq_sum_vec);
     }
 };
@@ -74,7 +75,8 @@ struct LoopUnroller<0, N> {
         constexpr size_t j = 0;
         __m256d spread_vec = _mm256_loadu_pd(&spread[j]);
         sum_vec = _mm256_add_pd(sum_vec, spread_vec);
-        sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
+        sq_sum_vec = _mm256_fmadd_pd(spread_vec, spread_vec, sq_sum_vec);
+        //sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
     }
 };
 
@@ -148,6 +150,6 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
     }
 }
 
-BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 12);
+BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 16);
 
 BENCHMARK_MAIN();
