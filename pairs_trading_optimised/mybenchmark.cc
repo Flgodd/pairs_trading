@@ -86,6 +86,10 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     spread[17] = stock1_prices[17] - stock2_prices[17];
     spread[18] = stock1_prices[18] - stock2_prices[18];
     spread[19] = stock1_prices[19] - stock2_prices[19];
+    spread[20] = stock1_prices[20] - stock2_prices[20];
+    spread[21] = stock1_prices[21] - stock2_prices[21];
+    spread[22] = stock1_prices[22] - stock2_prices[22];
+    spread[23] = stock1_prices[23] - stock2_prices[23];
 
     //vector<int> check(4, 0);
     for(size_t i = N; i < stock1_prices.size(); ++i) {
@@ -118,6 +122,11 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         sq_sum_vec = _mm256_fmadd_pd(spread_vec, spread_vec, sq_sum_vec);
         //sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
 
+        spread_vec = _mm256_loadu_pd(&spread[20]);
+        sum_vec = _mm256_add_pd(sum_vec, spread_vec);
+        sq_sum_vec = _mm256_fmadd_pd(spread_vec, spread_vec, sq_sum_vec);
+        //sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
+
         __m256d temp1 = _mm256_hadd_pd(sum_vec, sum_vec);
         __m256d sum_vec_total = _mm256_add_pd(temp1, _mm256_permute2f128_pd(temp1, temp1, 0x1));
 
@@ -126,13 +135,13 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
 
         double final_sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sum_vec_total));
         double final_sq_sum = _mm_cvtsd_f64(_mm256_castpd256_pd128(sq_sum_vec_total));
-        /*if(i == N+1){
+        if(i == N+1){
             double t = 0;
             for(double s : spread){
                 t += s;
             }
             cout<<t<<":"<<final_sum<<endl;
-        }*/
+        }
         double mean = final_sum / N;
         double stddev = std::sqrt(final_sq_sum / N - mean * mean);
 
@@ -174,6 +183,6 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
     }
 }
 
-BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 20);
+BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 24);
 
 BENCHMARK_MAIN();
