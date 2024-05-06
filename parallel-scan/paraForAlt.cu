@@ -23,6 +23,7 @@ __global__ void pairs_trading_kernel_op(const double* stock1_prices, const doubl
 
     // Load data into shared memory with conflict-free offset
     for (int i = idx; i < size; i += stride) {
+        if(idx >= size) return;
         if (i < 1256) {
             int bank_offset = CONFLICT_FREE_OFFSET(i);
             spread[i + bank_offset] = stock1_prices[i] - stock2_prices[i];  // Adjust index to avoid bank conflicts
