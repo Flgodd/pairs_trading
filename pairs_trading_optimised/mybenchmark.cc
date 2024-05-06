@@ -90,6 +90,11 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     spread[21] = stock1_prices[21] - stock2_prices[21];
     spread[22] = stock1_prices[22] - stock2_prices[22];
     spread[23] = stock1_prices[23] - stock2_prices[23];
+    spread[24] = stock1_prices[24] - stock2_prices[14];
+    spread[25] = stock1_prices[25] - stock2_prices[25];
+    spread[26] = stock1_prices[26] - stock2_prices[26];
+    spread[27] = stock1_prices[27] - stock2_prices[27];
+    spread[28] = stock1_prices[28] - stock2_prices[28];
 
     //vector<int> check(4, 0);
     for(size_t i = N; i < stock1_prices.size(); ++i) {
@@ -123,6 +128,11 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         //sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
 
         spread_vec = _mm256_loadu_pd(&spread[20]);
+        sum_vec = _mm256_add_pd(sum_vec, spread_vec);
+        sq_sum_vec = _mm256_fmadd_pd(spread_vec, spread_vec, sq_sum_vec);
+        //sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
+
+        spread_vec = _mm256_loadu_pd(&spread[24]);
         sum_vec = _mm256_add_pd(sum_vec, spread_vec);
         sq_sum_vec = _mm256_fmadd_pd(spread_vec, spread_vec, sq_sum_vec);
         //sq_sum_vec = _mm256_add_pd(sq_sum_vec, _mm256_mul_pd(spread_vec, spread_vec));
@@ -183,6 +193,6 @@ void BM_PairsTradingStrategyOptimized(benchmark::State& state) {
     }
 }
 
-BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 24);
+BENCHMARK_TEMPLATE(BM_PairsTradingStrategyOptimized, 28);
 
 BENCHMARK_MAIN();
