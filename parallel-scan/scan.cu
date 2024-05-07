@@ -197,13 +197,13 @@ __global__ void parallelized_zscore_calculation(
     const double z_score = (current_spread - mean) / stddev;
 
     if (z_score > 1.0) {
-        atomicAdd(&check[0], 1); // Long and Short
+        //atomicAdd(&check[0], 1); // Long and Short
     } else if (z_score < -1.0) {
-        atomicAdd(&check[1], 1); // Short and Long
+        //atomicAdd(&check[1], 1); // Short and Long
     } else if (std::abs(z_score) < 0.8) {
-        atomicAdd(&check[2], 1);  // Close positions
+        //atomicAdd(&check[2], 1);  // Close positions
     } else {
-        atomicAdd(&check[3], 1);  // No signal
+        //atomicAdd(&check[3], 1);  // No signal
     }
 }
 
@@ -374,16 +374,15 @@ void fillArrays(const std::vector<double>& stock1_prices, const std::vector<doub
         scanSmallDeviceArray(d_out, d_spread_sum, length, bcao);
         scanSmallDeviceArray(d_out2, d_spread_sq_sum, length, bcao);
     }
-    cudaMemcpy(temp.data(), d_out, arraySize, cudaMemcpyDeviceToHost);
-    //printf("%d\n", d_out.size());
-    //printf("%f : %f\n" , temp[1], stock1_prices[0] - stock2_prices[0]);
+    //cudaMemcpy(temp.data(), d_out, arraySize, cudaMemcpyDeviceToHost);
+
 
     int N =8;
 
      numBlocks = (stock1_prices.size() - N - 1 + threadsPerBlock - 1) / threadsPerBlock;
     parallelized_zscore_calculation<<<numBlocks, threadsPerBlock >>>(d_stock1_prices, d_stock2_prices, d_out, d_out2, d_check, N, spread_size);
-    cudaMemcpy(check.data(), d_check, check.size() * sizeof(int), cudaMemcpyDeviceToHost);
-    printf("d_check[0]:%d || d_check[1]:%d || d_check[2]:%d || d_check[3]:%d \n", check[0], check[1], check[2], check[3]);
+    //cudaMemcpy(check.data(), d_check, check.size() * sizeof(int), cudaMemcpyDeviceToHost);
+    //printf("d_check[0]:%d || d_check[1]:%d || d_check[2]:%d || d_check[3]:%d \n", check[0], check[1], check[2], check[3]);
 
     cudaMemcpy(spread_sum, d_spread_sum, spread_size * sizeof(double), cudaMemcpyDeviceToHost);
     cudaMemcpy(spread_sq_sum, d_spread_sq_sum, spread_size * sizeof(double), cudaMemcpyDeviceToHost);
