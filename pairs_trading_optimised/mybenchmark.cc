@@ -76,7 +76,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     };
 
     size_t work_chunk = 1256 / NUM_THREADS;
-    size_t remaining_work = 1256 % NUM_THREADS;
+    int remaining_work = 1256 % NUM_THREADS;
     for (int i = 0; i < NUM_THREADS; ++i) {
         size_t start = i * work_chunk + min(i, remaining_work);
         size_t end = start + work_chunk;
