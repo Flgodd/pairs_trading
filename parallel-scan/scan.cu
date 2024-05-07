@@ -337,6 +337,7 @@ __global__ void para_fill(const double *stock1_prices,
 void fillArrays(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices,
                              double spread_sum[], double spread_sq_sum[], size_t spread_size){
     vector<int> check (4);
+    vector<int> temp;
     double *d_stock1_prices, *d_stock2_prices, *d_spread_sum, *d_spread_sq_sum;
     int *d_check;
     int length = spread_size;
@@ -358,7 +359,7 @@ void fillArrays(const std::vector<double>& stock1_prices, const std::vector<doub
     para_fill<<<numBlocks, threadsPerBlock >>>(d_stock1_prices, d_stock2_prices, d_spread_sum, d_spread_sq_sum, spread_size);
     cudaMemcpy(spread_sum, d_spread_sum, spread_size * sizeof(double), cudaMemcpyDeviceToHost);
     cudaMemcpy(spread_sq_sum, d_spread_sq_sum, spread_size * sizeof(double), cudaMemcpyDeviceToHost);
-    printf("%f : %f\n" , spread_sum[0], stock1_prices[0] - stock2_prices[0]);
+    //printf("%f : %f\n" , spread_sum[0], stock1_prices[0] - stock2_prices[0]);
     double *d_out, *d_out2;
     const int arraySize = length * sizeof(double);
 //
@@ -373,6 +374,9 @@ void fillArrays(const std::vector<double>& stock1_prices, const std::vector<doub
         scanSmallDeviceArray(d_out, d_spread_sum, length, bcao);
         scanSmallDeviceArray(d_out, d_spread_sq_sum, length, bcao);
     }
+    cudaMemcpy(temp, d_out, arraySize, cudaMemcpyDeviceToHost);
+    printf("%f : %f\n" , temp[1], stock1_prices[0] - stock2_prices[0]);
+
     int N =8;
 
      numBlocks = (stock1_prices.size() - N - 1 + threadsPerBlock - 1) / threadsPerBlock;
