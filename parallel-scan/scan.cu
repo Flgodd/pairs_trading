@@ -211,8 +211,8 @@ void fillArrays(const std::vector<double>& stock1_prices, const std::vector<doub
     //cudaMemcpy(check.data(), d_check, check.size() * sizeof(int), cudaMemcpyDeviceToHost);
     //printf("d_check[0]:%d || d_check[1]:%d || d_check[2]:%d || d_check[3]:%d \n", check[0], check[1], check[2], check[3]);
 
-    cudaMemcpy(spread_sum, d_spread_sum, spread_size * sizeof(double), cudaMemcpyDeviceToHost);
-    cudaMemcpy(spread_sq_sum, d_spread_sq_sum, spread_size * sizeof(double), cudaMemcpyDeviceToHost);
+    //cudaMemcpy(spread_sum, d_spread_sum, spread_size * sizeof(double), cudaMemcpyDeviceToHost);
+    //cudaMemcpy(spread_sq_sum, d_spread_sq_sum, spread_size * sizeof(double), cudaMemcpyDeviceToHost);
 
     cudaFree(d_check);
     cudaFree(d_out);
