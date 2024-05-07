@@ -368,14 +368,14 @@ void fillArrays(const std::vector<double>& stock1_prices, const std::vector<doub
 
     if (length > ELEMENTS_PER_BLOCK) {
         scanLargeDeviceArray(d_out, d_spread_sum, length, bcao);
-        scanLargeDeviceArray(d_out, d_spread_sq_sum, length, bcao);
+        scanLargeDeviceArray(d_out2, d_spread_sq_sum, length, bcao);
     }
     else {
         scanSmallDeviceArray(d_out, d_spread_sum, length, bcao);
-        scanSmallDeviceArray(d_out, d_spread_sq_sum, length, bcao);
+        scanSmallDeviceArray(d_out2, d_spread_sq_sum, length, bcao);
     }
-    //cudaMemcpy(temp, d_out, arraySize, cudaMemcpyDeviceToHost);
-    printf("%d\n", d_out.size());
+    cudaMemcpy(temp, d_out, arraySize, cudaMemcpyDeviceToHost);
+    //printf("%d\n", d_out.size());
     //printf("%f : %f\n" , temp[1], stock1_prices[0] - stock2_prices[0]);
 
     int N =8;
