@@ -337,7 +337,7 @@ __global__ void para_fill(const double *stock1_prices,
 void fillArrays(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices,
                              double spread_sum[], double spread_sq_sum[], size_t spread_size){
     vector<int> check (4);
-    vector<double> temp;
+    vector<double> temp(spread_size);
     double *d_stock1_prices, *d_stock2_prices, *d_spread_sum, *d_spread_sq_sum;
     int *d_check;
     int length = spread_size;
