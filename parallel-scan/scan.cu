@@ -356,7 +356,9 @@ void fillArrays(const std::vector<double>& stock1_prices, const std::vector<doub
     int numBlocks = (stock1_prices.size() + threadsPerBlock - 1) / threadsPerBlock;
 
     para_fill<<<numBlocks, threadsPerBlock >>>(d_stock1_prices, d_stock2_prices, d_spread_sum, d_spread_sq_sum, spread_size);
-    printf("%f : %f\n" , d_spread_sum[0], stock1_prices[0] - stock2_prices[0]);
+    cudaMemcpy(spread_sum, d_spread_sum, spread_size * sizeof(double), cudaMemcpyDeviceToHost);
+    cudaMemcpy(spread_sq_sum, d_spread_sq_sum, spread_size * sizeof(double), cudaMemcpyDeviceToHost);
+    printf("%f : %f\n" , spread_sum[0], stock1_prices[0] - stock2_prices[0]);
     double *d_out, *d_out2;
     const int arraySize = length * sizeof(double);
 //
