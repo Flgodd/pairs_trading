@@ -336,6 +336,7 @@ __global__ void para_fill(const double *stock1_prices,
 
 void fillArrays(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices,
                              double spread_sum[], double spread_sq_sum[], size_t spread_size){
+    vector<int> check (4);
     double *d_stock1_prices, *d_stock2_prices, *d_spread_sum, *d_spread_sq_sum;
     int *d_check;
     int length = spread_size;
@@ -371,10 +372,10 @@ void fillArrays(const std::vector<double>& stock1_prices, const std::vector<doub
         scanSmallDeviceArray(d_out, d_spread_sq_sum, length, bcao);
     }
     int N =8;
-    int threadsPerBlock = 512;
-    int numBlocks = (stock1_prices.size() - N - 1 + threadsPerBlock - 1) / threadsPerBlock;
-    parallelized_zscore_calculation<<<numBlocks, threadsPerBlock >>>(d_stock1_prices, d_stock2_prices, d_out, d_out2, d_check, N, spread_size);
 
+     numBlocks = (stock1_prices.size() - N - 1 + threadsPerBlock - 1) / threadsPerBlock;
+    parallelized_zscore_calculation<<<numBlocks, threadsPerBlock >>>(d_stock1_prices, d_stock2_prices, d_out, d_out2, d_check, N, spread_size);
+    cudaMemcpy(check.data(), d_check, check.size() * sizeof(int), cudaMemcpyDeviceToHost);
     printf("d_check[0]:%d || d_check[1]:%d || d_check[2]:%d || d_check[3]:%d \n", check[0], check[1], check[2], check[3]);
 
     cudaMemcpy(spread_sum, d_spread_sum, spread_size * sizeof(double), cudaMemcpyDeviceToHost);
