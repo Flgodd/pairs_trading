@@ -186,29 +186,24 @@ __global__ void parallelized_zscore_calculation(
         size_t size) {
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    //printf("idx:%d\n", idx);
-    //if (idx >= size) return;
-    //if(idx >= 1247)printf("idx:%d\n", idx);
+
     if (idx >= size - N) return;
-    //if(idx >= 1247)printf("idx:%d\n", idx);
 
     int i = N + idx;
-    //printf("i:%d\n", i);
-    //if(i >= size)return;
-    //printf("i:%d\n", i);
+
     const double mean = (spread_sum[i] - spread_sum[i-N])/ N;
     const double stddev = std::sqrt((spread_sq_sum[i] - spread_sq_sum[i-N])/ N - mean * mean);
     const double current_spread = stock1_prices[i] - stock2_prices[i];
     const double z_score = (current_spread - mean) / stddev;
 
     if (z_score > 1.0) {
-        //atomicAdd(&check[0], 1); // Long and Short
+        atomicAdd(&check[0], 1); // Long and Short
     } else if (z_score < -1.0) {
-        //atomicAdd(&check[1], 1); // Short and Long
+        atomicAdd(&check[1], 1); // Short and Long
     } else if (std::abs(z_score) < 0.8) {
-        //atomicAdd(&check[2], 1);  // Close positions
+        atomicAdd(&check[2], 1);  // Close positions
     } else {
-        //atomicAdd(&check[3], 1);  // No signal
+        atomicAdd(&check[3], 1);  // No signal
     }
 }
 
@@ -342,7 +337,8 @@ __global__ void para_fill(const double *stock1_prices,
 void fillArrays(const std::vector<double>& stock1_prices, const std::vector<double>& stock2_prices,
                              double spread_sum[], double spread_sq_sum[], size_t spread_size){
     double *d_stock1_prices, *d_stock2_prices, *d_spread_sum, *d_spread_sq_sum;
-
+    int *d_check;
+    int length = spread_size;
     cudaMalloc((void**)&d_stock1_prices, stock1_prices.size() * sizeof(double));
     cudaMalloc((void**)&d_stock2_prices, stock2_prices.size() * sizeof(double));
     cudaMalloc((void**)&d_spread_sum, spread_size * sizeof(double));
@@ -353,15 +349,40 @@ void fillArrays(const std::vector<double>& stock1_prices, const std::vector<doub
     cudaMemcpy(d_spread_sum, spread_sum, spread_size * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(d_spread_sq_sum, spread_sq_sum, spread_size * sizeof(double), cudaMemcpyHostToDevice);
 
+    cudaMalloc((void**)&d_check, 4 * sizeof(int));
     int threadsPerBlock = 512;
-
+    bool bcao = true;
     int numBlocks = (stock1_prices.size() + threadsPerBlock - 1) / threadsPerBlock;
 
     para_fill<<<numBlocks, threadsPerBlock >>>(d_stock1_prices, d_stock2_prices, d_spread_sum, d_spread_sq_sum, spread_size);
 
+    double *d_out, *d_out2;
+    const int arraySize = length * sizeof(double);
+//
+    cudaMalloc((void **)&d_out, arraySize);
+    cudaMalloc((void **)&d_out2, arraySize);
+
+    if (length > ELEMENTS_PER_BLOCK) {
+        scanLargeDeviceArray(d_out, d_spread_sum, length, bcao);
+        scanLargeDeviceArray(d_out, d_spread_sq_sum, length, bcao);
+    }
+    else {
+        scanSmallDeviceArray(d_out, d_spread_sum, length, bcao);
+        scanSmallDeviceArray(d_out, d_spread_sq_sum, length, bcao);
+    }
+    int N =8;
+    int threadsPerBlock = 512;
+    int numBlocks = (stock1_prices.size() - N - 1 + threadsPerBlock - 1) / threadsPerBlock;
+    parallelized_zscore_calculation<<<numBlocks, threadsPerBlock >>>(d_stock1_prices, d_stock2_prices, d_out, d_out2, d_check, N, spread_size);
+
+    printf("d_check[0]:%d || d_check[1]:%d || d_check[2]:%d || d_check[3]:%d \n", check[0], check[1], check[2], check[3]);
+
     cudaMemcpy(spread_sum, d_spread_sum, spread_size * sizeof(double), cudaMemcpyDeviceToHost);
     cudaMemcpy(spread_sq_sum, d_spread_sq_sum, spread_size * sizeof(double), cudaMemcpyDeviceToHost);
 
+    cudaFree(d_check);
+    cudaFree(d_out);
+    cudaFree(d_out2);
 
     cudaFree(d_stock1_prices);
     cudaFree(d_stock2_prices);
