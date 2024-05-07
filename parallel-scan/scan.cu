@@ -374,7 +374,7 @@ void fillArrays(const std::vector<double>& stock1_prices, const std::vector<doub
         scanSmallDeviceArray(d_out, d_spread_sum, length, bcao);
         scanSmallDeviceArray(d_out2, d_spread_sq_sum, length, bcao);
     }
-    cudaMemcpy(temp, d_out, arraySize, cudaMemcpyDeviceToHost);
+    cudaMemcpy(temp.data(), d_out, arraySize, cudaMemcpyDeviceToHost);
     //printf("%d\n", d_out.size());
     //printf("%f : %f\n" , temp[1], stock1_prices[0] - stock2_prices[0]);
 
