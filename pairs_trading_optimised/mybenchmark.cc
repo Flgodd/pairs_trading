@@ -104,15 +104,14 @@ void parallelDownSweep(std::vector<double>& x) {
 void recursive_blelloch(std::vector<double>& x, int depth) {
     const int n = omp_get_max_threads() * 2;
     const int size = x.size();
-    float check = log2(size);
-    int check2 = log2(size);
-    if(check > check2) check2++;
-    int paddedSize = ((size + n - 1) / n) * n;
-    paddedSize = std::min(paddedSize, static_cast<int>(pow(check2, 2)));
+    int check2 = static_cast<int>(std::ceil(std::log2(size)));
+    int paddedSize = std::min(((size + n - 1) / n) * n, static_cast<int>(std::pow(2, check2)));
     x.resize(paddedSize, 0);
 
     int div = paddedSize / n;
-    if(paddedSize == pow(check2, 2))div = paddedSize/(pow(check2, 2)/2);
+    if (paddedSize == std::pow(2, check2)) {
+        div = paddedSize / (std::pow(2, check2 - 1));
+    }
     std::vector<std::vector<double>> toHoldValues(div);
     std::vector<double> newX(div);
 
