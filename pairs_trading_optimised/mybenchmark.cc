@@ -99,7 +99,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         }
         spread_index = (spread_index + 1) % N;
     }
-    cout<<check[0]<<":"<<check[1]<<":"check[2]<<":"check[3]<<endl;
+    cout<<check[0]<<":"<<check[1]<<":"<<check[2]<<":"<<check[3]<<endl;
 }
 
 
