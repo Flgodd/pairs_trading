@@ -102,53 +102,48 @@ void parallelDownSweep(std::vector<double>& x) {
 }
 
 void recursive_blelloch(std::vector<double>& x, int depth) {
-    const int maxThreads = omp_get_max_threads();
+    const int n = omp_get_max_threads() * 2;
     const int size = x.size();
-    const int n = std::min(maxThreads * 2, size);
-    const int paddedSize = ((size + n - 1) / n) * n;
+    float check = log2(size);
+    int check2 = log2(size);
+    if(check > check2) check2++;
+    int paddedSize = ((size + n - 1) / n) * n;
+    paddedSize = min(paddedSize, pow(check2, 2));
+    x.resize(paddedSize, 0);
 
-    if (depth == 1) {
-        if (size < n) {
-            parallelUpSweep(x);
-            parallelDownSweep(x);
-        } else {
-            x.resize(paddedSize, 0);
-            parallelUpSweep(x);
-            parallelDownSweep(x);
-            x.resize(size);
-        }
-        return;
-    }
-
-    const int div = (size + n - 1) / n;
+    int div = paddedSize / n;
+    if(paddedSize == pow(check2, 2))div = paddedSize/(pow(check2, 2)/2);
     std::vector<std::vector<double>> toHoldValues(div);
     std::vector<double> newX(div);
 
-#pragma omp parallel for num_threads(div)
+#pragma omp parallel for
     for (int i = 0; i < div; ++i) {
-        int start = i * n;
-        int end = std::min(start + n, size);
-        toHoldValues[i].assign(x.begin() + start, x.begin() + end);
-        if (end - start < n) {
-            parallelUpSweep(toHoldValues[i]);
-            parallelDownSweep(toHoldValues[i]);
-        } else {
-            toHoldValues[i].resize(n, 0);
-            parallelUpSweep(toHoldValues[i]);
-            parallelDownSweep(toHoldValues[i]);
-        }
-        newX[i] = toHoldValues[i].back() + (end < size ? x[end] : 0);
+        toHoldValues[i].assign(x.begin() + i * n, x.begin() + (i + 1) * n);
+        parallelUpSweep(toHoldValues[i]);
+        parallelDownSweep(toHoldValues[i]);
+        newX[i] = toHoldValues[i].back() + x[(i + 1) * n - 1];
+    }
+
+    if (depth == 1) {
+        x = std::move(toHoldValues[0]);
+        x.resize(size);
+        return;
     }
 
     recursive_blelloch(newX, depth - 1);
 
-    // Update the original vector with the results
-#pragma omp parallel for num_threads(div)
+#pragma omp parallel for
     for (int i = 0; i < div; ++i) {
-        int start = i * n;
-        int end = std::min(start + n, size);
-        std::copy(toHoldValues[i].begin(), toHoldValues[i].begin() + (end - start), x.begin() + start);
+        for (int j = 0; j < n; ++j) {
+            toHoldValues[i][j] += newX[i];
+        }
     }
+
+    x.clear();
+    for (const auto& subvec : toHoldValues) {
+        x.insert(x.end(), subvec.begin(), subvec.end());
+    }
+    x.resize(size);
 }
 
 
