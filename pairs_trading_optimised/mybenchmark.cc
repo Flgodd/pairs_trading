@@ -108,7 +108,7 @@ void recursive_blelloch(std::vector<double>& x, int depth) {
     int check2 = log2(size);
     if(check > check2) check2++;
     int paddedSize = ((size + n - 1) / n) * n;
-    paddedSize = std::min(paddedSize, pow(check2, 2));
+    paddedSize = std::min(paddedSize, static_cast<int>(pow(check2, 2)));
     x.resize(paddedSize, 0);
 
     int div = paddedSize / n;
