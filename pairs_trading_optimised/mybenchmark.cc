@@ -65,7 +65,7 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
     static_assert(N % 4 == 0, "N should be a multiple of 4 for NEON instructions");
     std::array<float, N> spread;
     size_t spread_index = 0;
-
+    vector<int> check(4);
     for(size_t i = 0; i < N; ++i) {
         spread[i] = static_cast<float>(stock1_prices[i] - stock2_prices[i]);
     }
@@ -89,17 +89,17 @@ void pairs_trading_strategy_optimized(const std::vector<double>& stock1_prices, 
         double z_score = (current_spread - mean) / stddev;
         spread[spread_index] = static_cast<float>(current_spread);
         if(z_score > 1.0) {
-            // Long and Short
+            check[0]++;// Long and Short
         } else if(z_score < -1.0) {
-            // Short and Long
+            check[1]++;// Short and Long
         } else if (std::abs(z_score) < 0.8) {
-            // Close positions
+            check[2]++;// Close positions
         } else {
-            // No signal
+            check[3]++;// No signal
         }
         spread_index = (spread_index + 1) % N;
     }
-
+    cout<<check[0]<<":"<<check[1]<<":"check[2]<<":"check[3]<<endl;
 }
 
 
